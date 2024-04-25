@@ -1,0 +1,80 @@
+import numpy as np
+import os
+import cv2
+from pathlib import Path
+import random
+
+# Size of the sub-images
+sub_image_size = 128
+
+# Dataset folder
+dataset_folder = Path("dataset_UNET")
+
+# Random mode option
+random_samples = 64
+
+# Number of Validation images
+N_VALIDATION = 2
+
+IMAGES_FOLDER = Path(dataset_folder, "imgs_full")
+MASKS_FOLDER = Path(dataset_folder, "masks_full")
+
+SUB_IMAGES_FOLDER_TRAIN = Path(dataset_folder, "Training", "images")
+SUB_IMAGES_FOLDER_VAL = Path(dataset_folder, "Validation", "images")
+
+SUB_MASKS_FOLDER_TRAIN = Path(dataset_folder, "Training", "masks")
+SUB_MASKS_FOLDER_VAL = Path(dataset_folder, "Validation", "masks")
+
+IMAGES_FOLDER.mkdir(parents=True, exist_ok=True)
+MASKS_FOLDER.mkdir(parents=True, exist_ok=True)
+SUB_IMAGES_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
+SUB_IMAGES_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+SUB_MASKS_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
+SUB_MASKS_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+
+imgs = os.listdir(IMAGES_FOLDER)
+masks = os.listdir(MASKS_FOLDER)
+imgs.sort()
+masks.sort()
+
+N_images = len(imgs)
+shuffled_index = [*range(N_images)]
+random.Random(13).shuffle(shuffled_index)
+validation_indexes = shuffled_index[:N_VALIDATION]
+
+for index_i, img_file in enumerate(imgs):
+
+    if index_i in validation_indexes:
+        SUB_IMAGES_FOLDER = SUB_IMAGES_FOLDER_VAL
+        SUB_MASKS_FOLDER = SUB_MASKS_FOLDER_VAL
+    else:
+        SUB_IMAGES_FOLDER = SUB_IMAGES_FOLDER_TRAIN
+        SUB_MASKS_FOLDER = SUB_MASKS_FOLDER_TRAIN
+
+    img_base_name = img_file.split(".")[0]
+    mask_file = f"{img_base_name}.png"
+    img = cv2.imread(str(Path(IMAGES_FOLDER, img_file)), 0)
+    img_mask = cv2.imread(str(Path(MASKS_FOLDER, mask_file)), 0)
+
+    N_I = img.shape[0] // sub_image_size
+    N_J = img.shape[1] // sub_image_size
+    random_cnt = 0
+    for n in range(random_samples):
+        rand_i = np.random.randint(low=0, high=img.shape[0] - sub_image_size)
+        rand_j = np.random.randint(low=0, high=img.shape[1] - sub_image_size)
+
+        i_start = rand_i
+        i_end = rand_i + sub_image_size
+        j_start = rand_j
+        j_end = rand_j + sub_image_size
+        img_split = img[i_start:i_end, j_start:j_end]
+        mask_split = img_mask[i_start:i_end, j_start:j_end]
+
+        cv2.imwrite(
+            str(Path(SUB_IMAGES_FOLDER, f"{img_base_name}_{n:03d}.jpg")), img_split
+        )
+        cv2.imwrite(
+            str(Path(SUB_MASKS_FOLDER, f"{img_base_name}_{n:03d}.png")), mask_split
+        )
+
+        random_cnt += 1
