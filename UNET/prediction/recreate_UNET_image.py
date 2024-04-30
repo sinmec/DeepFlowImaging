@@ -5,7 +5,6 @@ import numpy as np
 # import config as cfg
 
 def recreate_UNET_image(subdivided_image_UNET, window_size, raw_img, stride_division=2):
-
     UNET_image = np.zeros_like(raw_img, dtype=float)
     UNET_image_nmax = np.zeros_like(raw_img, dtype=float)
 
@@ -20,8 +19,7 @@ def recreate_UNET_image(subdivided_image_UNET, window_size, raw_img, stride_divi
     scan_I = np.arange(0, raw_img.shape[0] - window_size + 1, window_size // stride_division)
     scan_J = np.arange(0, raw_img.shape[1] - window_size + 1, window_size // stride_division)
 
-
-    # Generating the U-Net image 
+    # Generating the U-Net image
     index = 0
     for i in scan_I:
         for j in scan_J:
@@ -33,7 +31,7 @@ def recreate_UNET_image(subdivided_image_UNET, window_size, raw_img, stride_divi
             # Returning the 'intermediary' U-Net from the sliding window full matrix
             # See that I am summing this 'sub-image' into the original/desired U-Net image
             # That is the 'U-Net numerator'
-            sub_window = cv2.resize(subdivided_image_UNET[index, :, :, 0], (window_size,window_size))
+            sub_window = cv2.resize(subdivided_image_UNET[index, :, :, 0], (window_size, window_size))
             UNET_image[i_start:i_end, j_start:j_end] += sub_window
             # UNET_image[i_start:i_end, j_start:j_end] = subdivided_image_UNET[index, :, :, 0]
 
@@ -50,4 +48,4 @@ def recreate_UNET_image(subdivided_image_UNET, window_size, raw_img, stride_divi
     UNET_image *= 255.0
     UNET_image = UNET_image.astype(np.uint8)
 
-    return  UNET_image
+    return UNET_image
