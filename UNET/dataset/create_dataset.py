@@ -1,8 +1,10 @@
-import numpy as np
 import os
-import cv2
-from pathlib import Path
 import random
+from pathlib import Path
+
+import cv2
+import numpy as np
+from tqdm import tqdm
 
 # Size of the sub-images
 sub_image_size = 128
@@ -47,14 +49,14 @@ N_images = len(imgs)
 shuffled_index = [*range(N_images)]
 random.Random(13).shuffle(shuffled_index)
 validation_indexes = shuffled_index[:N_VALIDATION]
-verification_indexes = shuffled_index[N_VALIDATION:N_VALIDATION+N_VERIFICATION]
+verification_indexes = shuffled_index[N_VALIDATION:N_VALIDATION + N_VERIFICATION]
 
-for index_i, img_file in enumerate(imgs):
+for index_i, img_file in tqdm(enumerate(imgs), total=N_images, desc="Creating sub-images"):
 
     if index_i in validation_indexes:
         SUB_IMAGES_FOLDER = SUB_IMAGES_FOLDER_VAL
         SUB_MASKS_FOLDER = SUB_MASKS_FOLDER_VAL
-    if index_i in verification_indexes:
+    elif index_i in verification_indexes:
         SUB_IMAGES_FOLDER = SUB_IMAGES_FOLDER_VER
         SUB_MASKS_FOLDER = SUB_MASKS_FOLDER_VER
     else:

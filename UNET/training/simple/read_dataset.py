@@ -1,7 +1,8 @@
+import os
+from pathlib import Path
+
 import cv2
 import numpy as np
-from pathlib import Path
-import os
 
 
 def read_dataset(dataset_folder, window_size=256, subset="Training", debug=False):

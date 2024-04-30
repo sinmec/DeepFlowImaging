@@ -1,21 +1,18 @@
-import os
 from pathlib import Path
+
 import cv2
 import numpy as np
-import keras
-
-from keras.models import Model, load_model
-from keras.layers import Input, BatchNormalization, Activation, Dense, Dropout
-from keras.layers import Conv2D, Conv2DTranspose
-from keras.layers import MaxPooling2D, GlobalMaxPool2D
-from keras.layers import concatenate, add
-from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, EarlyStopping, Callback
-import sys
-
-from read_dataset import read_dataset
+from keras.layers import Conv2D, Conv2DTranspose
+from keras.layers import Input
+from keras.layers import MaxPooling2D
+from keras.layers import concatenate
+from keras.models import Model
+from keras.optimizers import Adam
 
 from conv2d_block import conv2d_block
+from read_dataset import read_dataset
+
 
 class TrackProgress(Callback):
     def on_epoch_end(self, epoch, logs=None):
@@ -40,7 +37,7 @@ class TrackProgress(Callback):
                 _out_img = np.hstack((_img, _mask, _pred_mask))
                 cv2.imwrite(
                     str(
-                    Path(out_progress_folder, f'progress_img_ex_{i:03d}_{epoch:05d}.jpg')
+                        Path(out_progress_folder, f'progress_img_ex_{i:03d}_{epoch:05d}.jpg')
                     ),
                     _out_img,
                 )
