@@ -9,13 +9,17 @@ def recreate_UNET_image(subdivided_image_UNET, window_size, raw_img, stride_divi
     N_I = raw_img.shape[0] // window_size + 1
     N_J = raw_img.shape[1] // window_size + 1
 
-    diff_I = - raw_img.shape[0] + N_I * window_size
-    diff_J = - raw_img.shape[1] + N_J * window_size
+    diff_I = -raw_img.shape[0] + N_I * window_size
+    diff_J = -raw_img.shape[1] + N_J * window_size
     assert diff_I % 2 == 0, "diff_I is not even!"
     assert diff_J % 2 == 0, "diff_J is not even!"
 
-    scan_I = np.arange(0, raw_img.shape[0] - window_size + 1, window_size // stride_division)
-    scan_J = np.arange(0, raw_img.shape[1] - window_size + 1, window_size // stride_division)
+    scan_I = np.arange(
+        0, raw_img.shape[0] - window_size + 1, window_size // stride_division
+    )
+    scan_J = np.arange(
+        0, raw_img.shape[1] - window_size + 1, window_size // stride_division
+    )
 
     index = 0
     for i in scan_I:
@@ -25,7 +29,9 @@ def recreate_UNET_image(subdivided_image_UNET, window_size, raw_img, stride_divi
             j_start = j
             j_end = j + window_size
 
-            sub_window = cv2.resize(subdivided_image_UNET[index, :, :, 0], (window_size, window_size))
+            sub_window = cv2.resize(
+                subdivided_image_UNET[index, :, :, 0], (window_size, window_size)
+            )
             UNET_image[i_start:i_end, j_start:j_end] += sub_window
 
             UNET_image_nmax[i_start:i_end, j_start:j_end] += 255.0

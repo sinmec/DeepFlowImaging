@@ -37,7 +37,10 @@ class TrackProgress(Callback):
                 _out_img = np.hstack((_img, _mask, _pred_mask))
                 cv2.imwrite(
                     str(
-                        Path(out_progress_folder, f'progress_img_ex_{i:03d}_{epoch:05d}.jpg')
+                        Path(
+                            out_progress_folder,
+                            f"progress_img_ex_{i:03d}_{epoch:05d}.jpg",
+                        )
                     ),
                     _out_img,
                 )

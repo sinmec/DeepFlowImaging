@@ -3,11 +3,17 @@ import numpy as np
 
 
 def divide_image(window_size, sub_image_size, raw_img, stride_division=2):
-    scan_I = np.arange(0, raw_img.shape[0] - window_size + 1, window_size // stride_division)
-    scan_J = np.arange(0, raw_img.shape[1] - window_size + 1, window_size // stride_division)
+    scan_I = np.arange(
+        0, raw_img.shape[0] - window_size + 1, window_size // stride_division
+    )
+    scan_J = np.arange(
+        0, raw_img.shape[1] - window_size + 1, window_size // stride_division
+    )
 
-    raw_img_subdivided = np.zeros((scan_I.shape[0] * scan_J.shape[0], sub_image_size, sub_image_size, 1),
-                                  dtype=np.float64)
+    raw_img_subdivided = np.zeros(
+        (scan_I.shape[0] * scan_J.shape[0], sub_image_size, sub_image_size, 1),
+        dtype=np.float64,
+    )
 
     index = 0
     for i in scan_I:

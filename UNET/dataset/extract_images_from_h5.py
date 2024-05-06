@@ -18,7 +18,9 @@ for h5_file in os.listdir(directory):
         continue
     h5_files.append(h5_file)
 
-for h5_files in tqdm(h5_files, total=len(h5_files), desc="Extracting dataset from .h5 file"):
+for h5_files in tqdm(
+    h5_files, total=len(h5_files), desc="Extracting dataset from .h5 file"
+):
 
     imgs_full_dir = Path(dataset_dir, "imgs_full")
     masks_full_dir = Path(dataset_dir, "masks_full")
