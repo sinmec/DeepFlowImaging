@@ -1,8 +1,10 @@
+import os
+from pathlib import Path
+
 import cv2
 import h5py
 import numpy as np
-from pathlib import Path
-import os
+from tqdm import tqdm
 
 # Path to .h5 file - Modify it accordingly
 directory = Path(r"/EXPERIMENTS/DeepFlowImaging/UNET_examples/h5_multilabeller_files")
@@ -10,9 +12,15 @@ directory = Path(r"/EXPERIMENTS/DeepFlowImaging/UNET_examples/h5_multilabeller_f
 # Dataset path - output folder
 dataset_dir = Path("dataset_UNET")
 
-for _h5_file in os.listdir(directory):
-    if ".h5" not in _h5_file:
+h5_files = []
+for h5_file in os.listdir(directory):
+    if ".h5" not in h5_file:
         continue
+    h5_files.append(h5_file)
+
+for h5_files in tqdm(
+    h5_files, total=len(h5_files), desc="Extracting dataset from .h5 file"
+):
 
     imgs_full_dir = Path(dataset_dir, "imgs_full")
     masks_full_dir = Path(dataset_dir, "masks_full")
@@ -20,7 +28,7 @@ for _h5_file in os.listdir(directory):
     masks_full_dir.mkdir(exist_ok=True, parents=True)
     imgs_full_dir.mkdir(exist_ok=True, parents=True)
 
-    h5_dataset = h5py.File(f"{directory / _h5_file}", "r")
+    h5_dataset = h5py.File(f"{directory / h5_file}", "r")
     image_files = h5_dataset.keys()
 
     for image_file in image_files:

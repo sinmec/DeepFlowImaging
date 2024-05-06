@@ -1,8 +1,10 @@
-import numpy as np
 import os
-import cv2
-from pathlib import Path
 import random
+from pathlib import Path
+
+import cv2
+import numpy as np
+from tqdm import tqdm
 
 # Size of the sub-images
 sub_image_size = 128
@@ -16,22 +18,28 @@ random_samples = 64
 # Number of Validation images
 N_VALIDATION = 2
 
+# Number of Verification images
+N_VERIFICATION = 2
+
 IMAGES_FOLDER = Path(dataset_folder, "imgs_full")
 MASKS_FOLDER = Path(dataset_folder, "masks_full")
 
 SUB_IMAGES_FOLDER_TRAIN = Path(dataset_folder, "Training", "images")
 SUB_IMAGES_FOLDER_VAL = Path(dataset_folder, "Validation", "images")
+SUB_IMAGES_FOLDER_VER = Path(dataset_folder, "Verification", "images")
 
 SUB_MASKS_FOLDER_TRAIN = Path(dataset_folder, "Training", "masks")
 SUB_MASKS_FOLDER_VAL = Path(dataset_folder, "Validation", "masks")
+SUB_MASKS_FOLDER_VER = Path(dataset_folder, "Verification", "masks")
 
 IMAGES_FOLDER.mkdir(parents=True, exist_ok=True)
 MASKS_FOLDER.mkdir(parents=True, exist_ok=True)
 SUB_IMAGES_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
 SUB_IMAGES_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+SUB_IMAGES_FOLDER_VER.mkdir(parents=True, exist_ok=True)
 SUB_MASKS_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
 SUB_MASKS_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
-
+SUB_MASKS_FOLDER_VER.mkdir(parents=True, exist_ok=True)
 imgs = os.listdir(IMAGES_FOLDER)
 masks = os.listdir(MASKS_FOLDER)
 imgs.sort()
@@ -41,12 +49,18 @@ N_images = len(imgs)
 shuffled_index = [*range(N_images)]
 random.Random(13).shuffle(shuffled_index)
 validation_indexes = shuffled_index[:N_VALIDATION]
+verification_indexes = shuffled_index[N_VALIDATION : N_VALIDATION + N_VERIFICATION]
 
-for index_i, img_file in enumerate(imgs):
+for index_i, img_file in tqdm(
+    enumerate(imgs), total=N_images, desc="Creating sub-images"
+):
 
     if index_i in validation_indexes:
         SUB_IMAGES_FOLDER = SUB_IMAGES_FOLDER_VAL
         SUB_MASKS_FOLDER = SUB_MASKS_FOLDER_VAL
+    elif index_i in verification_indexes:
+        SUB_IMAGES_FOLDER = SUB_IMAGES_FOLDER_VER
+        SUB_MASKS_FOLDER = SUB_MASKS_FOLDER_VER
     else:
         SUB_IMAGES_FOLDER = SUB_IMAGES_FOLDER_TRAIN
         SUB_MASKS_FOLDER = SUB_MASKS_FOLDER_TRAIN

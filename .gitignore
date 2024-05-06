@@ -160,10 +160,11 @@ cython_debug/
 .idea/
 
 # Model files
-.keras
-.h5
+*.keras
+*.h5
 
 # Image files
-.png
-.jpg
-.jpeg
+*.png
+*.jpg
+*.jpeg
+*.mp4
