@@ -7,8 +7,10 @@ import random
 # Size of the sub-images
 sub_image_size = 128
 
+home = Path.home()
+
 # Dataset folder
-dataset_folder = Path("dataset_UNET")
+dataset_folder = Path(home, "DeepFlowImaging", "dataset", "output")
 
 # Random mode option
 random_samples = 64
