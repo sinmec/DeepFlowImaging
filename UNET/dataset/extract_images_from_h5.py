@@ -4,11 +4,13 @@ import numpy as np
 from pathlib import Path
 import os
 
+home = Path.home()
+
 # Path to .h5 file - Modify it accordingly
-directory = Path(r"/EXPERIMENTS/DeepFlowImaging/UNET_examples/h5_multilabeller_files")
+directory = Path(home, "DeepFlowImaging", "dataset", "raw_data")
 
 # Dataset path - output folder
-dataset_dir = Path("dataset_UNET")
+dataset_dir = Path(home, "DeepFlowImaging", "dataset", "output")
 
 for _h5_file in os.listdir(directory):
     if ".h5" not in _h5_file:
