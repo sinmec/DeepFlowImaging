@@ -43,3 +43,9 @@ def extract_images_from_h5(data_path, output_path):
 
             cv2.imwrite(str(Path(imgs_full_dir, f"img_{image_file[:4]}.jpg")), original_img)
             cv2.imwrite(str(Path(masks_full_dir, f"img_{image_file[:4]}.png")), mask_img)
+
+
+# data_path = Path(r"C:\Users\higor\Desktop\data")
+# output_path = Path("dataset_UNET")
+#
+# extract_images_from_h5(data_path, output_path)
