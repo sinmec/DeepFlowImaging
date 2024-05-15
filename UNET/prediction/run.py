@@ -7,13 +7,13 @@ import numpy as np
 from tensorflow import keras
 from tqdm import tqdm
 
-from UNET.prediction.apply_UNET_mask_split import apply_UNET_mask
-from UNET.prediction.divide_image import divide_image
-from UNET.prediction.recreate_UNET_image import recreate_UNET_image
+# from UNET.prediction.apply_UNET_mask_split import apply_UNET_mask
+# from UNET.prediction.divide_image import divide_image
+# from UNET.prediction.recreate_UNET_image import recreate_UNET_image
 
 image_file_folder = r"/EXPERIMENTS/HSC_images/22_08_Ql_1_P_1_HIGH_20__001"
 
-UNET_model_file = os.path.join("../training/simple/UNET_best.keras")
+UNET_model_file = os.path.join("/home/higorem/DeepFlowImaging/UNET/examples/UNET_best.keras")
 UNET_model = keras.models.load_model(UNET_model_file, compile=False)
 window_size = 128
 sub_image_size = 64
@@ -22,12 +22,16 @@ stride_division = 8
 out_folder = Path("OUTPUT")
 out_folder.mkdir(parents=True, exist_ok=True)
 
-image_files = []
-for _file in os.listdir(image_file_folder):
-    if _file.endswith(".jpg"):
-        image_files.append(_file)
-image_files.sort()
 
+def get_image_files(img_file_folder):
+    image_files = []
+    for _file in os.listdir(img_file_folder):
+        if _file.endswith(".jpg"):
+            image_files.append(_file)
+    image_files.sort()
+    return image_files
+
+image_files = get_image_files(image_file_folder)
 
 def process_image(index_img, image_file):
     img = cv2.imread(str(Path(image_file_folder, image_file)), 0)
