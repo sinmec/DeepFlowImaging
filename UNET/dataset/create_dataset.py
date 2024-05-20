@@ -93,7 +93,3 @@ def create_dataset(path, sub_image_size, random_samples, N_VALIDATION, N_VERIFIC
             )
 
             random_cnt += 1
-
-
-# dataset_folder = Path(r"C:\Users\higor\Desktop\output")
-# create_dataset(dataset_folder, sub_image_size, random_samples, N_VALIDATION, N_VERIFICATION)
