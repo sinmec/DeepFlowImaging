@@ -17,6 +17,7 @@ N_VALIDATION = 2
 # Number of Verification images
 N_VERIFICATION = 2
 
+
 def create_dataset(path, sub_image_size, random_samples, N_VALIDATION, N_VERIFICATION):
 
     # Dataset folder
