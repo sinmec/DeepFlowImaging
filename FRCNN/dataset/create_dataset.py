@@ -80,6 +80,7 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
                 "ellipse_center_x, ellipse_center_y, "
                 "bbox_height, bbox_width, "
                 "ellipse_main_axis, ellipse_secondary_axis, ellipse_angle"
+                "\n"
             )
 
             output = []
@@ -134,6 +135,7 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
                         f"{int(center_x):d}, {int(center_y):d}, "
                         f"{int(bbox_height):d}, {int(bbox_width):d}, "
                         f"{int(ellipse_width):d}, {int(ellipse_height):d}, {ellipse_angle:.2f}"
+                        f"\n"
                     ]
                 )
 
@@ -143,7 +145,8 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
             with open(
                 Path(CONTOURS_FOLDER, f"{cnt_list_filename}"), "a", encoding="utf-8"
             ) as file:
-                file.write(header + "\n")
+                file.write(header)
                 for line in output:
-                    file.write(str(line)[2:-2] + "\n")
+                    file.write("".join(line))
                 file.close()
+create_dataset('..', r'C:\Users\rafaelfc\Data',1,1)
