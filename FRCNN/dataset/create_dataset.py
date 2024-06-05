@@ -64,7 +64,7 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
             N_VALIDATION : N_VALIDATION + N_VERIFICATION
         ]
 
-        MIN_CONTOUR_LENGHT = 5
+        MIN_CONTOUR_LENGTH = 5
 
         for image_file in image_files:
 
@@ -98,7 +98,7 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
             for contour_id in h5_dataset[image_file]["contours"]:
                 contour = h5_dataset[image_file]["contours"][contour_id]
 
-                if len(contour[...]) < MIN_CONTOUR_LENGHT:
+                if len(contour[...]) < MIN_CONTOUR_LENGTH:
                     break
 
                 (
