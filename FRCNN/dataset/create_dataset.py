@@ -149,4 +149,3 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
                 for line in output:
                     file.write("".join(line))
                 file.close()
-create_dataset('..', r'C:\Users\rafaelfc\Data',1,1)
