@@ -133,11 +133,3 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
                         write_contours(folder, file_name, output, header)
                 else:
                     write_contours(folder, file_name, output, header)
-
-
-h5_path = Path(r"../examples")
-
-N_VALIDATION = 2
-N_VERIFICATION = 2
-
-create_dataset(h5_path, h5_path, N_VALIDATION, N_VERIFICATION)
