@@ -5,6 +5,13 @@ import random
 import os
 
 
+def write_contours(directory, file, data, header, mode='a'):
+    with open(Path(directory, f'{file}'), mode, encoding='utf-8') as file:
+        file.write(header + '\n')
+        for line in data:
+            file.write(str(line)[2:-2] + '\n')
+        file.close()
+
 def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
     dataset_path = Path(output_path, "Output")
 
@@ -37,11 +44,7 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
     SUB_IMAGES_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
     SUB_IMAGES_FOLDER_VER.mkdir(parents=True, exist_ok=True)
 
-    def write_contours(directory, file, data, header):
-        with open(Path(directory, f'{file}'), 'w', encoding='utf-8') as file:
-            file.write(header + '\n')
-            for line in data:
-                file.write(str(line)[2:-2] + '\n')
+
 
     h5_files = []
     for h5_file in os.listdir(h5_path):
@@ -76,6 +79,13 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
             cnt_list_filename = f'{base_filename}_contours.txt'
             debug_image_filename = f'{base_filename}.jpg'
             raw_image_filename = f'{base_filename}.jpg'
+
+            SUB_CONTOURS_FOLDERS = [SUB_CONTOURS_FOLDER_TRAIN, SUB_CONTOURS_FOLDER_VAL, SUB_CONTOURS_FOLDER_VER]
+            for folder in SUB_CONTOURS_FOLDERS:
+                if Path(folder, cnt_list_filename).exists():
+                    os.remove(Path(folder, cnt_list_filename))
+
+
 
 
             original_img = h5_dataset[image_file]['img'][...]
@@ -141,3 +151,4 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
                         write_contours(folder, cnt_list_filename, output, header)
                 else:
                     write_contours(folder, cnt_list_filename, output, header)
+create_dataset('..', r'C:\Users\rafaelfc\Data',1,1)
