@@ -199,6 +199,3 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
                         write_contours(folder, cnt_list_filename, output, header)
                 else:
                     write_contours(folder, cnt_list_filename, output, header)
-
-
-create_dataset("..", r"C:\Users\rafaelfc\Data", 1, 1)
