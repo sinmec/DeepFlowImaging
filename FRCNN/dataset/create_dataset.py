@@ -5,8 +5,8 @@ import random
 import os
 
 
-def create_dataset(path, N_VALIDATION, N_VERIFICATION):
-    dataset_path = Path(path)
+def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
+    dataset_path = Path(output_path, "Output")
 
     TRAINING_FOLDER = Path(dataset_path, "Training")
     VALIDATION_FOLDER = Path(dataset_path, "Validation")
@@ -24,6 +24,20 @@ def create_dataset(path, N_VALIDATION, N_VERIFICATION):
     SUB_IMAGES_FOLDER_VAL = Path(dataset_path, "Validation", "images")
     SUB_IMAGES_FOLDER_VER = Path(dataset_path, "Verification", "images")
 
+    dataset_path.mkdir(parents=True, exist_ok=True)
+    TRAINING_FOLDER.mkdir(parents=True, exist_ok=True)
+    VALIDATION_FOLDER.mkdir(parents=True, exist_ok=True)
+    VERIFICATION_FOLDER.mkdir(parents=True, exist_ok=True)
+    SUB_CONTOURS_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
+    SUB_CONTOURS_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+    SUB_CONTOURS_FOLDER_VER.mkdir(parents=True, exist_ok=True)
+    SUB_DEBUG_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
+    SUB_DEBUG_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+    SUB_DEBUG_FOLDER_VER.mkdir(parents=True, exist_ok=True)
+    SUB_IMAGES_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
+    SUB_IMAGES_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+    SUB_IMAGES_FOLDER_VER.mkdir(parents=True, exist_ok=True)
+
     def write_contours(directory, file, data, head):
         with open(Path(directory, f'{file}'), 'w', encoding='utf-8') as file:
             file.write(head + '\n')
@@ -31,13 +45,13 @@ def create_dataset(path, N_VALIDATION, N_VERIFICATION):
                 file.write(str(line)[2:-2] + '\n')
 
     h5_files = []
-    for h5_file in os.listdir(path):
+    for h5_file in os.listdir(h5_path):
         if ".h5" not in h5_file:
             continue
         h5_files.append(h5_file)
 
     for h5_file in h5_files:
-        h5_dataset = h5py.File(Path(path, h5_file), 'r')
+        h5_dataset = h5py.File(Path(h5_path, h5_file), 'r')
         image_files = h5_dataset.keys()
 
         image_files_list = list(image_files)
@@ -46,19 +60,6 @@ def create_dataset(path, N_VALIDATION, N_VERIFICATION):
         random.Random(13).shuffle(shuffled_index)
         validation_indexes = shuffled_index[:N_VALIDATION]
         verification_indexes = shuffled_index[N_VALIDATION: N_VALIDATION + N_VERIFICATION]
-
-        TRAINING_FOLDER.mkdir(parents=True, exist_ok=True)
-        VALIDATION_FOLDER.mkdir(parents=True, exist_ok=True)
-        VERIFICATION_FOLDER.mkdir(parents=True, exist_ok=True)
-        SUB_CONTOURS_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
-        SUB_CONTOURS_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
-        SUB_CONTOURS_FOLDER_VER.mkdir(parents=True, exist_ok=True)
-        SUB_DEBUG_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
-        SUB_DEBUG_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
-        SUB_DEBUG_FOLDER_VER.mkdir(parents=True, exist_ok=True)
-        SUB_IMAGES_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
-        SUB_IMAGES_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
-        SUB_IMAGES_FOLDER_VER.mkdir(parents=True, exist_ok=True)
 
         MIN_CONTOUR_LENGHT = 5
 
@@ -134,9 +135,9 @@ def create_dataset(path, N_VALIDATION, N_VERIFICATION):
                     write_contours(folder, file_name, output, header)
 
 
-h5_file = Path(r"../examples")
+h5_path = Path(r"../examples")
 
 N_VALIDATION = 2
 N_VERIFICATION = 2
 
-create_dataset(h5_file, N_VALIDATION, N_VERIFICATION)
+create_dataset(h5_path, h5_path, N_VALIDATION, N_VERIFICATION)
