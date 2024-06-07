@@ -31,9 +31,6 @@ def create_random_dataset(image_width, image_height, N_IMAGES, output_path, elli
             ellipse_contour = ellipse_to_contour(ellipse_center, ellipse_width, ellipse_height, ellipse_angle)
             contours.append(ellipse_contour)
 
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-
         cv2.imwrite(
             str(Path(output_path, f"{i:03d}.png")), img
         )
