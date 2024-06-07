@@ -5,44 +5,40 @@ import random
 import os
 
 
+def write_contours(directory, file, data, header, mode="a"):
+    with open(Path(directory, f"{file}"), mode, encoding="utf-8") as file:
+        file.write(header + "\n")
+        for line in data:
+            file.write(str(line)[2:-2] + "\n")
+        file.close()
+
+
 def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
     dataset_path = Path(output_path, "Output")
 
-    TRAINING_FOLDER = Path(dataset_path, "Training")
-    VALIDATION_FOLDER = Path(dataset_path, "Validation")
-    VERIFICATION_FOLDER = Path(dataset_path, "Verification")
+    CONTOURS_FOLDER_TRAIN = Path(dataset_path, "Training", "contours")
+    CONTOURS_FOLDER_VAL = Path(dataset_path, "Validation", "contours")
+    CONTOURS_FOLDER_VER = Path(dataset_path, "Verification", "contours")
 
-    SUB_CONTOURS_FOLDER_TRAIN = Path(dataset_path, "Training", "contours")
-    SUB_CONTOURS_FOLDER_VAL = Path(dataset_path, "Validation", "contours")
-    SUB_CONTOURS_FOLDER_VER = Path(dataset_path, "Verification", "contours")
+    DEBUG_FOLDER_TRAIN = Path(dataset_path, "Training", "debug")
+    DEBUG_FOLDER_VAL = Path(dataset_path, "Validation", "debug")
+    DEBUG_FOLDER_VER = Path(dataset_path, "Verification", "debug")
 
-    SUB_DEBUG_FOLDER_TRAIN = Path(dataset_path, "Training", "debug")
-    SUB_DEBUG_FOLDER_VAL = Path(dataset_path, "Validation", "debug")
-    SUB_DEBUG_FOLDER_VER = Path(dataset_path, "Verification", "debug")
+    IMAGES_FOLDER_TRAIN = Path(dataset_path, "Training", "images")
+    IMAGES_FOLDER_VAL = Path(dataset_path, "Validation", "images")
+    IMAGES_FOLDER_VER = Path(dataset_path, "Verification", "images")
 
-    SUB_IMAGES_FOLDER_TRAIN = Path(dataset_path, "Training", "images")
-    SUB_IMAGES_FOLDER_VAL = Path(dataset_path, "Validation", "images")
-    SUB_IMAGES_FOLDER_VER = Path(dataset_path, "Verification", "images")
+    CONTOURS_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
+    CONTOURS_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+    CONTOURS_FOLDER_VER.mkdir(parents=True, exist_ok=True)
 
-    dataset_path.mkdir(parents=True, exist_ok=True)
-    TRAINING_FOLDER.mkdir(parents=True, exist_ok=True)
-    VALIDATION_FOLDER.mkdir(parents=True, exist_ok=True)
-    VERIFICATION_FOLDER.mkdir(parents=True, exist_ok=True)
-    SUB_CONTOURS_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
-    SUB_CONTOURS_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
-    SUB_CONTOURS_FOLDER_VER.mkdir(parents=True, exist_ok=True)
-    SUB_DEBUG_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
-    SUB_DEBUG_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
-    SUB_DEBUG_FOLDER_VER.mkdir(parents=True, exist_ok=True)
-    SUB_IMAGES_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
-    SUB_IMAGES_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
-    SUB_IMAGES_FOLDER_VER.mkdir(parents=True, exist_ok=True)
+    DEBUG_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
+    DEBUG_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+    DEBUG_FOLDER_VER.mkdir(parents=True, exist_ok=True)
 
-    def write_contours(directory, file, data, head):
-        with open(Path(directory, f'{file}'), 'w', encoding='utf-8') as file:
-            file.write(head + '\n')
-            for line in data:
-                file.write(str(line)[2:-2] + '\n')
+    IMAGES_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
+    IMAGES_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+    IMAGES_FOLDER_VER.mkdir(parents=True, exist_ok=True)
 
     h5_files = []
     for h5_file in os.listdir(h5_path):
@@ -51,85 +47,105 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
         h5_files.append(h5_file)
 
     for h5_file in h5_files:
-        h5_dataset = h5py.File(Path(h5_path, h5_file), 'r')
+        h5_dataset = h5py.File(Path(h5_path, h5_file), "r")
         image_files = h5_dataset.keys()
 
-        image_files_list = list(image_files)
         N_images = len(image_files)
         shuffled_index = [*range(N_images)]
         random.Random(13).shuffle(shuffled_index)
         validation_indexes = shuffled_index[:N_VALIDATION]
-        verification_indexes = shuffled_index[N_VALIDATION: N_VALIDATION + N_VERIFICATION]
+        verification_indexes = shuffled_index[
+            N_VALIDATION : N_VALIDATION + N_VERIFICATION
+        ]
 
-        MIN_CONTOUR_LENGHT = 5
+        MIN_CONTOUR_LENGTH = 5
 
-        for image_file in image_files:
+        for index, image_file in enumerate(image_files):
 
-            header = "image_name, ellipse_center_x, ellipse_center_y, bbox_height, bbox_width," \
-                     " ellipse_main_axis, ellipse_secondary_axis, ellipse_angle"
+            if index in validation_indexes:
+                CONTOURS_FOLDER = CONTOURS_FOLDER_VAL
+                IMAGES_FOLDER = IMAGES_FOLDER_VAL
+                DEBUG_FOLDER = DEBUG_FOLDER_VAL
+            elif index in verification_indexes:
+                CONTOURS_FOLDER = CONTOURS_FOLDER_VER
+                IMAGES_FOLDER = IMAGES_FOLDER_VER
+                DEBUG_FOLDER = DEBUG_FOLDER_VER
+            else:
+                CONTOURS_FOLDER = CONTOURS_FOLDER_TRAIN
+                IMAGES_FOLDER = IMAGES_FOLDER_TRAIN
+                DEBUG_FOLDER = DEBUG_FOLDER_TRAIN
+
+            header = (
+                "image_name, "
+                "ellipse_center_x, ellipse_center_y, "
+                "bbox_height, bbox_width, "
+                "ellipse_main_axis, ellipse_secondary_axis, ellipse_angle"
+                "\n"
+            )
 
             output = []
 
-            file_name = f'img_{Path(image_file).stem}_contours.txt'
+            base_filename = f"img_{Path(image_file).stem}"
 
-            original_img = h5_dataset[image_file]['img'][...]
+            cnt_list_filename = f"{base_filename}_contours.txt"
+            debug_image_filename = f"{base_filename}.jpg"
+            raw_image_filename = f"{base_filename}.jpg"
+
+            if Path(CONTOURS_FOLDER, cnt_list_filename).exists():
+                os.remove(Path(CONTOURS_FOLDER, cnt_list_filename))
+
+            original_img = h5_dataset[image_file]["img"][...]
             marked_img = original_img.copy()
 
-            for contour_id in h5_dataset[image_file]['contours']:
-                contour = h5_dataset[image_file]['contours'][contour_id]
+            for contour_id in h5_dataset[image_file]["contours"]:
+                contour = h5_dataset[image_file]["contours"][contour_id]
 
-                if len(contour[...]) < MIN_CONTOUR_LENGHT:
+                if len(contour[...]) < MIN_CONTOUR_LENGTH:
                     break
 
-                ((center_x, center_y), (ellipse_width, ellipse_height), ellipse_angle) = cv2.fitEllipse(contour[...])
+                (
+                    (center_x, center_y),
+                    (ellipse_width, ellipse_height),
+                    ellipse_angle,
+                ) = cv2.fitEllipse(contour[...])
 
-                marked_img = cv2.ellipse(marked_img, (int(center_x), int(center_y)),
-                                         (int(ellipse_width / 2), int(ellipse_height / 2)),
-                                         ellipse_angle, 0, 360, (0, 0, 255), 2)
+                marked_img = cv2.ellipse(
+                    marked_img,
+                    (int(center_x), int(center_y)),
+                    (int(ellipse_width / 2), int(ellipse_height / 2)),
+                    ellipse_angle,
+                    0,
+                    360,
+                    (0, 0, 255),
+                    2,
+                )
 
                 bbox_x, bbox_y, bbox_width, bbox_height = cv2.boundingRect(contour[...])
-                marked_img = cv2.rectangle(marked_img, (bbox_x, bbox_y),
-                                           (bbox_x + bbox_width, bbox_y + bbox_height), (0, 255, 0), 1)
+                marked_img = cv2.rectangle(
+                    marked_img,
+                    (bbox_x, bbox_y),
+                    (bbox_x + bbox_width, bbox_y + bbox_height),
+                    (0, 255, 0),
+                    1,
+                )
 
-                output.append([f"{image_file}, {center_x:.2f}, {center_y:.2f}, {bbox_height:.2f}, {bbox_width:.2f},"
-                               f" {ellipse_width:.2f}, {ellipse_height:.2f}, {ellipse_angle:.2f}"])
+                output.append(
+                    [
+                        f"{raw_image_filename}, "
+                        f"{int(center_x):d}, {int(center_y):d}, "
+                        f"{int(bbox_height):d}, {int(bbox_width):d}, "
+                        f"{int(ellipse_width):d}, {int(ellipse_height):d}, {ellipse_angle:.2f}"
+                        f"\n"
+                    ]
+                )
 
-            SUB_DEBUG_FOLDERS = [SUB_DEBUG_FOLDER_VAL, SUB_DEBUG_FOLDER_VER, SUB_DEBUG_FOLDER_TRAIN]
+            cv2.imwrite(str(Path(DEBUG_FOLDER, f"{debug_image_filename}")), marked_img)
+            cv2.imwrite(str(Path(IMAGES_FOLDER, f"{raw_image_filename}")), original_img)
 
-            for folder in SUB_DEBUG_FOLDERS:
-                image_files_list = list(image_files)
-                index = image_files_list.index(image_file)
-                if folder == SUB_DEBUG_FOLDER_VAL:
-                    if index in validation_indexes:
-                        cv2.imwrite(str(Path(folder, f'cnts_{image_file}')), marked_img)
-                elif folder == SUB_DEBUG_FOLDER_VER:
-                    if index in verification_indexes:
-                        cv2.imwrite(str(Path(folder, f'cnts_{image_file}')), marked_img)
-                else:
-                    cv2.imwrite(str(Path(folder, f'cnts_{image_file}')), marked_img)
-
-            SUB_IMAGES_FOLDERS = [SUB_IMAGES_FOLDER_TRAIN, SUB_IMAGES_FOLDER_VAL, SUB_IMAGES_FOLDER_VER]
-
-            for folder in SUB_IMAGES_FOLDERS:
-                index = image_files_list.index(image_file)
-                if folder == SUB_IMAGES_FOLDER_VAL:
-                    if index in validation_indexes:
-                        cv2.imwrite(str(Path(folder, f'cnts_{image_file}')), original_img)
-                elif folder == SUB_IMAGES_FOLDER_VER:
-                    if index in verification_indexes:
-                        cv2.imwrite(str(Path(folder, f'cnts_{image_file}')), original_img)
-                else:
-                    cv2.imwrite(str(Path(folder, f'cnts_{image_file}')), original_img)
-
-            SUB_CONTOURS_FOLDERS = [SUB_CONTOURS_FOLDER_TRAIN, SUB_CONTOURS_FOLDER_VAL, SUB_CONTOURS_FOLDER_VER]
-
-            for folder in SUB_CONTOURS_FOLDERS:
-                index = image_files_list.index(image_file)
-                if folder == SUB_CONTOURS_FOLDER_VAL:
-                    if index in validation_indexes:
-                        write_contours(folder, file_name, output, header)
-                elif folder == SUB_CONTOURS_FOLDER_VER:
-                    if index in verification_indexes:
-                        write_contours(folder, file_name, output, header)
-                else:
-                    write_contours(folder, file_name, output, header)
+            with open(
+                Path(CONTOURS_FOLDER, f"{cnt_list_filename}"), "a", encoding="utf-8"
+            ) as file:
+                file.write(header)
+                for line in output:
+                    file.write("".join(line))
+                file.close()
