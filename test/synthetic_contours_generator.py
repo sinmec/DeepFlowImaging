@@ -6,53 +6,79 @@ import os
 import h5py
 
 
-# ellipse_bounds = [ellipse_width_bounds, ellipse_height_bounds, ellipse_ahgle_bounds]
-# ellipse_bounds = [(x, y), (w, z), (a, b)]
-def create_random_dataset(image_width, image_height, N_IMAGES, output_path, ellipse_bounds):
+def create_random_dataset(
+    h5_file_name, image_width, image_height, N_IMAGES, output_path, ellipse_options
+):
     output_path = Path(output_path, "output")
     output_path.mkdir(parents=True, exist_ok=True)
-
+    img_contours = []
+    img_collection = []
     for i in range(0, N_IMAGES):
         contours = []
 
         img = np.zeros((image_height, image_width, 3), dtype=np.uint8)
-        N_ELLIPSES = random.randint(15, 35)
-
-        for j in range(0, N_ELLIPSES):
-            ellipse_center = (random.randint(0, image_width), random.randint(0, image_height))
-            ellipse_width = random.randint(ellipse_bounds[0][0], ellipse_bounds[0][1])
-            ellipse_height = random.randint(ellipse_bounds[1][0], ellipse_bounds[1][1])
-            ellipse_angle = random.randint(ellipse_bounds[2][0], ellipse_bounds[2][1])
-
-            img = cv2.ellipse(img, ellipse_center,
-                              (ellipse_width, ellipse_height),
-                              ellipse_angle, 0, 360, (255, 255, 255), -1)
-
-            ellipse_contour = ellipse_to_contour(ellipse_center, ellipse_width, ellipse_height, ellipse_angle)
-            contours.append(ellipse_contour)
-
-        cv2.imwrite(
-            str(Path(output_path, f"{i:03d}.png")), img
+        N_ELLIPSES = random.randint(
+            ellipse_options["N_ellipses"]["min"], ellipse_options["N_ellipses"]["max"]
         )
 
-        print(N_ELLIPSES, len(contours))
+        for j in range(0, N_ELLIPSES):
+            ellipse_axis_1 = random.randint(
+                ellipse_options["width"]["min"], ellipse_options["width"]["max"]
+            )
+            ellipse_axis_2 = random.randint(
+                ellipse_options["width"]["min"], ellipse_options["width"]["max"]
+            )
+            ellipse_angle = random.randint(
+                ellipse_options["angle"]["min"], ellipse_options["angle"]["max"]
+            )
 
-        export_h5(output_path, img, contours, i)
+            major_axis = max(ellipse_axis_1, ellipse_axis_2)
+            minor_axis = min(ellipse_axis_1, ellipse_axis_2)
+
+            BOUNDARY_OFFSET = 2
+            max_dimension = max(major_axis, minor_axis) + BOUNDARY_OFFSET
+            ellipse_center = (
+                random.randint(max_dimension, image_width - max_dimension),
+                random.randint(max_dimension, image_height - max_dimension),
+            )
+
+            img = cv2.ellipse(
+                img,
+                ellipse_center,
+                (major_axis, minor_axis),
+                ellipse_angle,
+                0,
+                360,
+                (255, 255, 255),
+                ellipse_options["line_width"],
+            )
+
+            ellipse_contour = ellipse_to_contour(
+                ellipse_center, major_axis, minor_axis, ellipse_angle
+            )
+            contours.append(ellipse_contour)
+
+        cv2.imwrite(str(Path(output_path, f"{i:03d}.png")), img)
+
+        img_contours.append(contours)
+        img_collection.append(img)
+
+    export_h5(output_path, h5_file_name, img_collection, img_contours)
 
 
-def export_h5(output_path, img, contours, img_index):
-    h5_file_name = "test.h5"
+def export_h5(output_path, h5_file_name, img_collection, img_contours):
     h5_file_path = Path(output_path, h5_file_name)
+    with h5py.File(h5_file_path, "w") as h5_file:
+        for img_index, (img, contours) in enumerate(zip(img_collection, img_contours)):
+            img_group_name = f"img_{img_index:03d}"
+            img_group = h5_file.create_group(img_group_name)
 
-    with h5py.File(h5_file_path, "a") as h5_file:
-        img_group_name = f"img_{img_index:03d}"
-        img_group = h5_file.create_group(img_group_name)
+            img_group.create_dataset("img", data=img)
 
-        img_group.create_dataset("img", data=img)
-
-        contours_group = img_group.create_group("contours")
-        for idx, contour in enumerate(contours):
-            contours_group.create_dataset(f"cnt_{idx:06d}", data=contour)
+            contours_group = img_group.create_group("contours")
+            for idx, contour in enumerate(contours):
+                contours_group.create_dataset(f"cnt_{idx:06d}", data=contour)
+    h5_file.close()
 
 
 def ellipse_to_contour(center, width, height, angle):
@@ -68,8 +94,17 @@ def ellipse_to_contour(center, width, height, angle):
     return cv2_contour
 
 
-image_width = 252
-image_height = 1024
-path = Path(os.getcwd())
-ellipse_bounds = [[15, 20], [15, 20], [0, 30]]
-create_random_dataset(image_width, image_height, 10, path, ellipse_bounds)
+image_width = 256
+image_height = 256
+output_path = Path(os.getcwd())
+h5_file_name = "synthetic_circles.h5"
+ellipsis_options = {
+    "width": {"min": 5, "max": 20},
+    "angle": {"min": -30, "max": 30},
+    "N_ellipses": {"min": 5, "max": 10},
+    "line_width": 4,
+}
+N_IMAGES = 50
+create_random_dataset(
+    h5_file_name, image_width, image_height, N_IMAGES, output_path, ellipsis_options
+)
