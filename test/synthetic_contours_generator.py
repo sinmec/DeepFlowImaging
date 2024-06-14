@@ -20,8 +20,9 @@ def create_random_dataset(
         N_ELLIPSES = random.randint(
             ellipse_options["N_ellipses"]["min"], ellipse_options["N_ellipses"]["max"]
         )
+        valid_ellipses = 0
 
-        for j in range(0, N_ELLIPSES):
+        while valid_ellipses < N_ELLIPSES:
             ellipse_axis_1 = random.randint(
                 ellipse_options["width"]["min"], ellipse_options["width"]["max"]
             )
@@ -42,8 +43,11 @@ def create_random_dataset(
                 random.randint(max_dimension, image_height - max_dimension),
             )
 
-            img = cv2.ellipse(
-                img,
+            check = np.zeros_like(img)
+            empty_img = np.zeros_like(img)
+
+            new_ellipse = cv2.ellipse(
+                empty_img,
                 ellipse_center,
                 (major_axis, minor_axis),
                 ellipse_angle,
@@ -53,10 +57,30 @@ def create_random_dataset(
                 ellipse_options["line_width"],
             )
 
-            ellipse_contour = ellipse_to_contour(
-                ellipse_center, major_axis, minor_axis, ellipse_angle
-            )
-            contours.append(ellipse_contour)
+            check[new_ellipse == 255] += 1
+            check[img == 255] += 1
+
+            if np.max(check) < 2:
+                valid_ellipses += 1
+
+                img = cv2.ellipse(
+                    img,
+                    ellipse_center,
+                    (major_axis, minor_axis),
+                    ellipse_angle,
+                    0,
+                    360,
+                    (255, 255, 255),
+                    ellipse_options["line_width"],
+                )
+
+                ellipse_contour = ellipse_to_contour(
+                    ellipse_center, major_axis, minor_axis, ellipse_angle
+                )
+                contours.append(ellipse_contour)
+
+            else:
+                pass
 
         cv2.imwrite(str(Path(output_path, f"{i:03d}.png")), img)
 
