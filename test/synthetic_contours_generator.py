@@ -116,19 +116,3 @@ def ellipse_to_contour(center, width, height, angle):
         cv2_contour[i, 0, 1] = ellipse_poly[i][1]
 
     return cv2_contour
-
-
-image_width = 256
-image_height = 256
-output_path = Path(os.getcwd())
-h5_file_name = "synthetic_circles.h5"
-ellipsis_options = {
-    "width": {"min": 5, "max": 20},
-    "angle": {"min": -30, "max": 30},
-    "N_ellipses": {"min": 5, "max": 10},
-    "line_width": 4,
-}
-N_IMAGES = 50
-create_random_dataset(
-    h5_file_name, image_width, image_height, N_IMAGES, output_path, ellipsis_options
-)
