@@ -2,7 +2,6 @@ import random
 from pathlib import Path
 import numpy as np
 import cv2
-import os
 import h5py
 
 
@@ -13,16 +12,20 @@ def create_random_dataset(
     output_path.mkdir(parents=True, exist_ok=True)
     img_contours = []
     img_collection = []
+    it_max = 50
+
     for i in range(0, N_IMAGES):
         contours = []
 
         img = np.zeros((image_height, image_width, 3), dtype=np.uint8)
+        img_check = np.zeros((image_height, image_width, 3), dtype=np.uint8)
+
         N_ELLIPSES = random.randint(
             ellipse_options["N_ellipses"]["min"], ellipse_options["N_ellipses"]["max"]
         )
         valid_ellipses = 0
-
-        while valid_ellipses < N_ELLIPSES:
+        it = 0
+        while valid_ellipses < N_ELLIPSES and it < it_max:
             ellipse_axis_1 = random.randint(
                 ellipse_options["width"]["min"], ellipse_options["width"]["max"]
             )
@@ -54,11 +57,11 @@ def create_random_dataset(
                 0,
                 360,
                 (255, 255, 255),
-                ellipse_options["line_width"],
+                -1,
             )
 
             check[new_ellipse == 255] += 1
-            check[img == 255] += 1
+            check[img_check == 255] += 1
 
             if np.max(check) < 2:
                 valid_ellipses += 1
@@ -74,12 +77,24 @@ def create_random_dataset(
                     ellipse_options["line_width"],
                 )
 
+                img_check = cv2.ellipse(
+                    img_check,
+                    ellipse_center,
+                    (major_axis, minor_axis),
+                    ellipse_angle,
+                    0,
+                    360,
+                    (255, 255, 255),
+                    -1,
+                )
+
                 ellipse_contour = ellipse_to_contour(
                     ellipse_center, major_axis, minor_axis, ellipse_angle
                 )
                 contours.append(ellipse_contour)
 
             else:
+                it += 1
                 pass
 
         cv2.imwrite(str(Path(output_path, f"{i:03d}.png")), img)
