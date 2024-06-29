@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import cv2
 import h5py
+from tqdm import tqdm
 
 
 def create_random_dataset(
@@ -12,9 +13,10 @@ def create_random_dataset(
     output_path.mkdir(parents=True, exist_ok=True)
     img_contours = []
     img_collection = []
-    it_max = 50
+    MAX_ITERATIONS = 500
 
-    for i in range(0, N_IMAGES):
+    failed_images = 0
+    for i in tqdm(range(0, N_IMAGES), desc="Creating synthetic ellipse images"):
         contours = []
 
         img = np.zeros((image_height, image_width, 3), dtype=np.uint8)
@@ -25,7 +27,13 @@ def create_random_dataset(
         )
         valid_ellipses = 0
         it = 0
-        while valid_ellipses < N_ELLIPSES and it < it_max:
+
+        failed_ellipses = 0
+        while valid_ellipses < N_ELLIPSES:
+            if it > MAX_ITERATIONS:
+                failed_ellipses += 1
+                break
+
             ellipse_axis_1 = random.randint(
                 ellipse_options["width"]["min"], ellipse_options["width"]["max"]
             )
@@ -96,11 +104,23 @@ def create_random_dataset(
             else:
                 it += 1
                 pass
+        if failed_ellipses:
+            print(
+                f"\tWarning: At image {i} a total of {failed_ellipses} ellipses failed."
+                f"\n\tPlease check the input parameters"
+            )
 
+            failed_images += 1
         cv2.imwrite(str(Path(output_path, f"{i:03d}.png")), img)
 
         img_contours.append(contours)
         img_collection.append(img)
+
+    if failed_images:
+        print(
+            f"Warning: {failed_images}/{N_IMAGES} images resulted in ellipse fitting problems.\n"
+            f"Please check the input parameters."
+        )
 
     export_h5(output_path, h5_file_name, img_collection, img_contours)
 
@@ -112,7 +132,7 @@ def export_h5(output_path, h5_file_name, img_collection, img_contours):
             img_group_name = f"img_{img_index:03d}"
             img_group = h5_file.create_group(img_group_name)
 
-            img_group.create_dataset("img", data=img)
+            img_group.create_dataset("img", data=img, compression="gzip")
 
             contours_group = img_group.create_group("contours")
             for idx, contour in enumerate(contours):
