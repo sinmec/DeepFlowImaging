@@ -4,6 +4,7 @@ from training.calculate_bbox_intesect_over_union import calculate_bbox_intesect_
 from training.evaluate_ious import evaluate_ious
 from training.create_samples_for_training import create_samples_for_training
 from training.parametrize_anchor_box_properties import parametrize_anchor_box_properties
+from tqdm import tqdm
 
 
 def generate_validation_data(imgs, bbox_datasets, img_size, N_SUB, N_ANCHORS, ANCHOR_SIZES, ANCHOR_RATIOS, N_RATIOS,
@@ -21,7 +22,7 @@ def generate_validation_data(imgs, bbox_datasets, img_size, N_SUB, N_ANCHORS, AN
     batch_anchor_locations = np.zeros((N_validation, img_size[0] // N_SUB, img_size[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS), dtype=np.float64)
 
     index = 0
-    for img, bbox_dataset in zip(imgs, bbox_datasets):
+    for img, bbox_dataset in tqdm(zip(imgs, bbox_datasets), desc="Generating validation data"):
 
         # Calculating anchor/bbox_dataset IoUs
         ious = calculate_bbox_intesect_over_union(anchors, index_anchors_valid, bbox_dataset, img)
@@ -52,8 +53,7 @@ def generate_validation_data(imgs, bbox_datasets, img_size, N_SUB, N_ANCHORS, AN
         batch_anchor_labels[index,:,:,:] = anchor_labels
         batch_anchor_locations[index,:,:,:] = anchor_locations
 
-        index+=1
-        print(index)
+        index += 1
 
     # Returning samples for model validation
     return batch_imgs, [batch_anchor_labels, batch_anchor_locations]
