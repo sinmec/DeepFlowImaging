@@ -36,14 +36,14 @@ def parametrize_anchor_box_properties(anchors, anchor_argmax_ious, labels, ious,
 
         index_gt = anchor_argmax_ious[i]
 
-        h_b   = bbox_dataset[index_gt, 4]
+        h_b   = bbox_dataset[index_gt, 2]
         w_b   = bbox_dataset[index_gt, 3]
         c_x_b = bbox_dataset[index_gt, 0]
         c_y_b = bbox_dataset[index_gt, 1]
 
-        angle_b = bbox_dataset[index_gt, 5]
-        d_1_b   = bbox_dataset[index_gt, 6]
-        d_2_b   = bbox_dataset[index_gt, 7]
+        angle_b = bbox_dataset[index_gt, 6]
+        d_1_b   = bbox_dataset[index_gt, 4]
+        d_2_b   = bbox_dataset[index_gt, 5]
 
         # if not labels[i] == -1:
 

@@ -17,19 +17,23 @@ def calculate_bbox_intesect_over_union(anchors, index_anchors_valid, bbox_datase
     # Looping over the dataset
     # and calculating IoU of each bbox against all the anchors
     for k in range(len(bbox_dataset)):
-
         bbox = bbox_dataset[k]
-        x_b_1 = int(bbox[0] - (bbox[3] / 2))
-        y_b_1 = int(bbox[1] - (bbox[4] / 2))
-        x_b_2 = int(bbox[0] + (bbox[3] / 2))
-        y_b_2 = int(bbox[1] + (bbox[4] / 2))
 
-        bbox_area = (x_b_2 - x_b_1) * (y_b_2 - y_b_1)
+        width = (bbox[3])
+        height = (bbox[2])
+
+        x_b_1 = int((bbox[0]) - (width)/2)
+        y_b_1 = int((bbox[1]) - (height)/2)
+
+        x_b_2 = int((bbox[0]) + (width)/2)
+        y_b_2 = int((bbox[1]) + (height)/2)
+
+        bbox_area = width * height
         for i, valid_anchor in enumerate(valid_anchors):
             x_a_1 =  int(valid_anchor[0])
             y_a_1 =  int(valid_anchor[1])
             x_a_2 =  int(valid_anchor[2])
-            y_a_2 =  int(valid_anchor[3])
+            y_a_2 =  int(valid_anchor[3])git
 
             anchor_area = (x_a_2 - x_a_1) * (y_a_2 - y_a_1)
 

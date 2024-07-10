@@ -68,10 +68,15 @@ def evaluate_ious(anchors, index_anchors_valid, ious, bbox_dataset, image,
 
         # debug
         for k, bbox in enumerate(bbox_dataset):
-            x_b_1 = int(bbox[0] - (bbox[3] / 2))
-            y_b_1 = int(bbox[1] - (bbox[4] / 2))
-            x_b_2 = int(bbox[0] + (bbox[3] / 2))
-            y_b_2 = int(bbox[1] + (bbox[4] / 2))
+            width = bbox[4]
+            height = bbox[3]
+
+            x_b_1 = int(bbox[0] - width / 2)
+            y_b_1 = int(bbox[1] - height / 2)
+
+            x_b_2 = int(bbox[0] + width / 2)
+            y_b_2 = int(bbox[1] + height / 2)
+
             c_x = (x_b_1 + x_b_2) // 2
             c_y = (y_b_1 + y_b_2) // 2
             font = cv2.FONT_HERSHEY_SIMPLEX
