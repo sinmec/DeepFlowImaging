@@ -23,7 +23,7 @@ def read_dataset(dataset_folder, window_size=256, subset="Training", debug=False
     masks = np.zeros((N_masks, window_size, window_size, 1), dtype=np.uint8)
 
     for i in range(N_images):
-        img_base_name = all_images[i].split(".")[0]
+        img_base_name = Path(all_images[i]).stem
 
         img_image = cv2.imread(str(Path(images_folder, "%s.jpg" % img_base_name)), 0)
         img_mask = cv2.imread(str(Path(masks_folder, "%s.png" % img_base_name)), 0)

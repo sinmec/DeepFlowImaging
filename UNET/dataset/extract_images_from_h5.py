@@ -37,6 +37,7 @@ def extract_images_from_h5(h5_dataset_path, output_path):
 
             original_img = h5_dataset[image_file]["img"][...]
             mask_img = np.zeros(original_img.shape, dtype=np.uint8)
+            output_image_file = Path(image_file).stem
 
             for contour_id in h5_dataset[image_file]["contours"]:
                 contour = h5_dataset[image_file]["contours"][contour_id]
@@ -45,8 +46,6 @@ def extract_images_from_h5(h5_dataset_path, output_path):
                 )
 
             cv2.imwrite(
-                str(Path(imgs_full_dir, f"img_{image_file[:4]}.jpg")), original_img
+                str(Path(imgs_full_dir, f"{output_image_file}.jpg")), original_img
             )
-            cv2.imwrite(
-                str(Path(masks_full_dir, f"img_{image_file[:4]}.png")), mask_img
-            )
+            cv2.imwrite(str(Path(masks_full_dir, f"{output_image_file}.png")), mask_img)
