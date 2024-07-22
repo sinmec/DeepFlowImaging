@@ -169,3 +169,10 @@ cython_debug/
 *.jpg
 *.jpeg
 *.mp4
+
+# Training files
+*.txt
+*.csv
+
+# Json files
+*.json
