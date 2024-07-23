@@ -9,18 +9,22 @@ from keras.callbacks import ModelCheckpoint
 from keras.callbacks import EarlyStopping
 from keras.callbacks import Callback
 
-N_KT = 8 # 1/N_KT of the dataset is used in 'kt' mode
+N_KT = 8  # 1/N_KT of the dataset is used in 'kt' mode
 
 import cv2
 import numpy as np
 from read_dataset import read_dataset
-from UNET_models import create_econ_model, create_mini_model, create_large_model, create_largest_model
-
+from UNET_models import (
+    create_econ_model,
+    create_mini_model,
+    create_large_model,
+    create_largest_model,
+)
 
 
 class TrackProgress(Callback):
-    def on_epoch_end(self, epoch, logs=None):
-        out_progress_folder = Path("progress/best")
+    def on_epoch_end(self, epoch, unet_base_arch=None, logs=None):
+        out_progress_folder = Path('progress',f'{unet_base_arch}')
         if epoch == 0:
             out_progress_folder.mkdir(parents=True, exist_ok=True)
         if epoch % 10 == 0:
@@ -49,12 +53,13 @@ class TrackProgress(Callback):
                     _out_img,
                 )
 
+
 dataset_folder = Path("../../dataset/dataset_UNET")
-window_size = 64
+window_size = 128
 # run_mode = sys.argv[1]
 # unet_base_arch = sys.argv[2]
-unet_base_arch = "train"
-run_mode = 'kt'
+unet_base_arch = "mini"
+run_mode = "kt"
 EPOCHS = 5000
 PATIENCE = 500
 BATCH_SIZE = 128
@@ -77,82 +82,114 @@ def model_builder(hp):
     if unet_base_arch == "mini":
         MAX_POOL_SIZE = 2
         for i in range(4):
-            _N_FILTER = hp.Int('n_filter_%02d' % i, min_value=4, max_value=24, default=2, step=4)
+            _N_FILTER = hp.Int(
+                "n_filter_%02d" % i, min_value=4, max_value=24, default=2, step=4
+            )
             N_FILTERS.append(_N_FILTER)
         for i in range(4):
-            _KERNEL_SIZE = hp.Int('kernel_size_%02d' % i, min_value=3, max_value=11, default=3, step=2)
+            _KERNEL_SIZE = hp.Int(
+                "kernel_size_%02d" % i, min_value=3, max_value=11, default=3, step=2
+            )
             KERNEL_SIZES.append(_KERNEL_SIZE)
         for i in range(2):
-            _DROPOUT = hp.Float('dropout_%d' % i, min_value=0.0, max_value=0.5, default=0.1, step=0.1)
+            _DROPOUT = hp.Float(
+                "dropout_%d" % i, min_value=0.0, max_value=0.5, default=0.1, step=0.1
+            )
             DROPOUTS.append(_DROPOUT)
-        BATCH_MODE = hp.Choice('batch_norm', [True, False])
+        BATCH_MODE = hp.Choice("batch_norm", [True, False])
 
-        model = create_mini_model(window_size_2=window_size,
-                                  n_filters=N_FILTERS,
-                                  dropouts=DROPOUTS,
-                                  kernel_sizes=KERNEL_SIZES,
-                                  max_pool_size=MAX_POOL_SIZE,
-                                  batchnorm=BATCH_MODE)
+        model = create_mini_model(
+            window_size=window_size,
+            n_filters=N_FILTERS,
+            dropouts=DROPOUTS,
+            kernel_sizes=KERNEL_SIZES,
+            max_pool_size=MAX_POOL_SIZE,
+            batchnorm=BATCH_MODE,
+        )
     elif unet_base_arch == "econ":
         MAX_POOL_SIZE = 2
         for i in range(7):
-            _N_FILTER = hp.Int('n_filter_%02d' % i, min_value=4, max_value=24, default=2, step=4)
+            _N_FILTER = hp.Int(
+                "n_filter_%02d" % i, min_value=4, max_value=24, default=2, step=4
+            )
             N_FILTERS.append(_N_FILTER)
         for i in range(7):
-            _KERNEL_SIZE = hp.Int('kernel_size_%02d' % i, min_value=3, max_value=11, default=3, step=2)
+            _KERNEL_SIZE = hp.Int(
+                "kernel_size_%02d" % i, min_value=3, max_value=11, default=3, step=2
+            )
             KERNEL_SIZES.append(_KERNEL_SIZE)
         for i in range(4):
-            _DROPOUT = hp.Float('dropout_%d' % i, min_value=0.0, max_value=0.5, default=0.1, step=0.1)
+            _DROPOUT = hp.Float(
+                "dropout_%d" % i, min_value=0.0, max_value=0.5, default=0.1, step=0.1
+            )
             DROPOUTS.append(_DROPOUT)
-        BATCH_MODE = hp.Choice('batch_norm', [True, False])
+        BATCH_MODE = hp.Choice("batch_norm", [True, False])
 
-        model = create_econ_model(window_size_2=window_size,
-                                  n_filters=N_FILTERS,
-                                  dropouts=DROPOUTS,
-                                  kernel_sizes=KERNEL_SIZES,
-                                  max_pool_size=MAX_POOL_SIZE,
-                                  batchnorm=BATCH_MODE)
+        model = create_econ_model(
+            window_size_2=window_size,
+            n_filters=N_FILTERS,
+            dropouts=DROPOUTS,
+            kernel_sizes=KERNEL_SIZES,
+            max_pool_size=MAX_POOL_SIZE,
+            batchnorm=BATCH_MODE,
+        )
 
     elif unet_base_arch == "large":
-        # MAX_POOL_SIZE = hp.Choice('max_pool_size', [2,4])
-        MAX_POOL_SIZE = 2
+        MAX_POOL_SIZE = hp.Choice("max_pool_size", [2, 4])
+        # MAX_POOL_SIZE = 2
         for i in range(10):
-            _N_FILTER = hp.Int('n_filter_%02d' % i, min_value=4, max_value=24, default=2, step=4)
+            _N_FILTER = hp.Int(
+                "n_filter_%02d" % i, min_value=4, max_value=24, default=2, step=4
+            )
             N_FILTERS.append(_N_FILTER)
         for i in range(10):
-            _KERNEL_SIZE = hp.Int('kernel_size_%02d' % i, min_value=3, max_value=11, default=3, step=2)
+            _KERNEL_SIZE = hp.Int(
+                "kernel_size_%02d" % i, min_value=3, max_value=11, default=3, step=2
+            )
             KERNEL_SIZES.append(_KERNEL_SIZE)
         for i in range(6):
-            _DROPOUT = hp.Float('dropout_%d' % i, min_value=0.0, max_value=0.5, default=0.1, step=0.1)
+            _DROPOUT = hp.Float(
+                "dropout_%d" % i, min_value=0.0, max_value=0.5, default=0.1, step=0.1
+            )
             DROPOUTS.append(_DROPOUT)
-        BATCH_MODE = hp.Choice('batch_norm', [True, False])
+        BATCH_MODE = hp.Choice("batch_norm", [True, False])
 
-        model = create_large_model(window_size_2=window_size,
-                                   n_filters=N_FILTERS,
-                                   dropouts=DROPOUTS,
-                                   kernel_sizes=KERNEL_SIZES,
-                                   max_pool_size=MAX_POOL_SIZE,
-                                   batchnorm=BATCH_MODE)
+        model = create_large_model(
+            window_size=window_size,
+            n_filters=N_FILTERS,
+            dropouts=DROPOUTS,
+            kernel_sizes=KERNEL_SIZES,
+            max_pool_size=MAX_POOL_SIZE,
+            batchnorm=BATCH_MODE,
+        )
 
     elif unet_base_arch == "largest":
-        MAX_POOL_SIZE = 2
+        MAX_POOL_SIZE = hp.Choice("max_pool_size", [2, 4])
         for i in range(13):
-            _N_FILTER = hp.Int('n_filter_%02d' % i, min_value=4, max_value=24, default=2, step=4)
+            _N_FILTER = hp.Int(
+                "n_filter_%02d" % i, min_value=4, max_value=24, default=2, step=4
+            )
             N_FILTERS.append(_N_FILTER)
         for i in range(13):
-            _KERNEL_SIZE = hp.Int('kernel_size_%02d' % i, min_value=3, max_value=11, default=3, step=2)
+            _KERNEL_SIZE = hp.Int(
+                "kernel_size_%02d" % i, min_value=3, max_value=11, default=3, step=2
+            )
             KERNEL_SIZES.append(_KERNEL_SIZE)
         for i in range(8):
-            _DROPOUT = hp.Float('dropout_%d' % i, min_value=0.0, max_value=0.5, default=0.1, step=0.1)
+            _DROPOUT = hp.Float(
+                "dropout_%d" % i, min_value=0.0, max_value=0.5, default=0.1, step=0.1
+            )
             DROPOUTS.append(_DROPOUT)
-        BATCH_MODE = hp.Choice('batch_norm', [True, False])
+        BATCH_MODE = hp.Choice("batch_norm", [True, False])
 
-        model = create_largest_model(window_size_2=window_size,
-                                     n_filters=N_FILTERS,
-                                     dropouts=DROPOUTS,
-                                     kernel_sizes=KERNEL_SIZES,
-                                     max_pool_size=MAX_POOL_SIZE,
-                                     batchnorm=BATCH_MODE)
+        model = create_largest_model(
+            window_size=window_size,
+            n_filters=N_FILTERS,
+            dropouts=DROPOUTS,
+            kernel_sizes=KERNEL_SIZES,
+            max_pool_size=MAX_POOL_SIZE,
+            batchnorm=BATCH_MODE,
+        )
 
     model.compile(optimizer=Adam(), loss="binary_crossentropy")
 
@@ -174,25 +211,28 @@ images_train = images_train[shuffle, :, :, :]
 masks_train = masks_train[shuffle, :, :, :]
 
 if not train_mode:
-    images_train = images_train[:N_dataset // N_KT, :, :, :]
-    masks_train = masks_train[:N_dataset // N_KT, :, :, :]
+    images_train = images_train[: N_dataset // N_KT, :, :, :]
+    masks_train = masks_train[: N_dataset // N_KT, :, :, :]
 
-tuner = keras_tuner.Hyperband(model_builder,
-                  objective='val_loss',
-                  max_epochs=300,
-                  seed=42,
-                  directory='hyperband',
-                  project_name=f'unet_run_{unet_base_arch}')
+tuner = keras_tuner.Hyperband(
+    model_builder,
+    objective="val_loss",
+    max_epochs=EPOCHS//5,
+    batch_size=BATCH_SIZE,
+    seed=42,
+    directory=f"hyperband_{unet_base_arch}",
+    project_name=f"unet_run_{unet_base_arch}",
+)
 
-stop_early = keras.callbacks.EarlyStopping(monitor='val_loss', patience=100)
+stop_early = keras.callbacks.EarlyStopping(monitor="val_loss", patience=100)
 # modificando na marra o 'self.min_epochs = 100' no hyperband.py...
 tuner.search(
     x=images_train,
     y=masks_train,
     validation_data=(images_val, masks_val),
-    epochs=30,
+    epochs=20,
     initial_epoch=200,
-    callbacks=[stop_early]
+    callbacks=[stop_early],
 )
 
 if train_mode:
@@ -203,17 +243,23 @@ if train_mode:
         model = tuner.hypermodel.build(best_hp)
         model_name = "model_%s_%02d" % (unet_base_arch, trial)
 
+        checkpoint = ModelCheckpoint(
+            f"UNET_best_{model_name}.keras",
+            verbose=1,
+            save_best_only=True,
+            monitor="val_loss",
+            mode="auto",
+        )
 
-        checkpoint = ModelCheckpoint(f'UNET_best_{model_name}.keras',
-                                     verbose=1,
-                                     save_best_only=True,
-                                     monitor='val_loss',
-                                     mode='auto')
+        early_stopping = EarlyStopping(
+            monitor="val_loss", mode="min", verbose=1, patience=PATIENCE
+        )
 
-        early_stopping = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=100)
-
-        model.fit(images_train, masks_train,
-                  batch_size=16,
-                  epochs=1000,
-                  validation_data=(images_val, masks_val),
-                  callbacks=[checkpoint, early_stopping, TrackProgress()])
+        model.fit(
+            images_train,
+            masks_train,
+            batch_size=BATCH_SIZE,
+            epochs=1000,
+            validation_data=(images_val, masks_val),
+            callbacks=[checkpoint, early_stopping, TrackProgress(unet_base_arch=unet_base_arch)],
+        )
