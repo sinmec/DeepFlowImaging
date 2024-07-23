@@ -227,9 +227,9 @@ def create_large_model(
 
     model = Model(inputs=[input_img], outputs=[outputs])
 
-    plot_model(
-        model, to_file="debug_UNET_large.png", show_shapes=True, show_layer_names=True
-    )
+    # plot_model(
+    #     model, to_file="debug_UNET_large.png", show_shapes=True, show_layer_names=True
+    # )
 
     return model
 
@@ -360,8 +360,8 @@ def create_largest_model(
 
     model = Model(inputs=[input_img], outputs=[outputs])
 
-    plot_model(
-        model, to_file="debug_UNET_largest.png", show_shapes=True, show_layer_names=True
-    )
+    # plot_model(
+    #     model, to_file="debug_UNET_largest.png", show_shapes=True, show_layer_names=True
+    # )
 
     return model

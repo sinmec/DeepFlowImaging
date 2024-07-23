@@ -23,8 +23,10 @@ from UNET_models import (
 
 
 class TrackProgress(Callback):
-    def on_epoch_end(self, epoch, unet_base_arch=None, logs=None):
-        out_progress_folder = Path('progress',f'{unet_base_arch}')
+    def __init__(self, model_name=""):
+        self.model_name = model_name
+    def on_epoch_end(self, epoch,  logs=None):
+        out_progress_folder = Path('progress',f'{self.model_name}')
         if epoch == 0:
             out_progress_folder.mkdir(parents=True, exist_ok=True)
         if epoch % 10 == 0:
@@ -54,12 +56,12 @@ class TrackProgress(Callback):
                 )
 
 
-dataset_folder = Path("../../dataset/dataset_UNET")
+dataset_folder = Path("/home/rafaelfc/Data/DeepFlowImaging/UNET/examples/dataset_UNET_PIV_IJMF/")
 window_size = 128
 # run_mode = sys.argv[1]
 # unet_base_arch = sys.argv[2]
-unet_base_arch = "mini"
-run_mode = "kt"
+unet_base_arch = "large"
+run_mode = "train"
 EPOCHS = 5000
 PATIENCE = 500
 BATCH_SIZE = 128
@@ -218,7 +220,6 @@ tuner = keras_tuner.Hyperband(
     model_builder,
     objective="val_loss",
     max_epochs=EPOCHS//5,
-    batch_size=BATCH_SIZE,
     seed=42,
     directory=f"hyperband_{unet_base_arch}",
     project_name=f"unet_run_{unet_base_arch}",
@@ -233,6 +234,7 @@ tuner.search(
     epochs=20,
     initial_epoch=200,
     callbacks=[stop_early],
+    batch_size=BATCH_SIZE
 )
 
 if train_mode:
@@ -241,7 +243,7 @@ if train_mode:
 
     for trial, best_hp in enumerate(best_hps):
         model = tuner.hypermodel.build(best_hp)
-        model_name = "model_%s_%02d" % (unet_base_arch, trial)
+        model_name = f"model_{unet_base_arch}_{trial:02d}"
 
         checkpoint = ModelCheckpoint(
             f"UNET_best_{model_name}.keras",
@@ -259,7 +261,7 @@ if train_mode:
             images_train,
             masks_train,
             batch_size=BATCH_SIZE,
-            epochs=1000,
+            epochs=EPOCHS,
             validation_data=(images_val, masks_val),
-            callbacks=[checkpoint, early_stopping, TrackProgress(unet_base_arch=unet_base_arch)],
+            callbacks=[checkpoint, early_stopping, TrackProgress(model_name=model_name)],
         )
