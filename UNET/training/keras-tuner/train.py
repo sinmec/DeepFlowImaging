@@ -1,13 +1,11 @@
-import sys
 from pathlib import Path
-
 
 import keras
 import keras_tuner
-from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint
-from keras.callbacks import EarlyStopping
 from keras.callbacks import Callback
+from keras.callbacks import EarlyStopping
+from keras.callbacks import ModelCheckpoint
+from keras.optimizers import Adam
 
 N_KT = 8  # 1/N_KT of the dataset is used in 'kt' mode
 
@@ -25,8 +23,9 @@ from UNET_models import (
 class TrackProgress(Callback):
     def __init__(self, model_name=""):
         self.model_name = model_name
-    def on_epoch_end(self, epoch,  logs=None):
-        out_progress_folder = Path('progress',f'{self.model_name}')
+
+    def on_epoch_end(self, epoch, logs=None):
+        out_progress_folder = Path('progress', f'{self.model_name}')
         if epoch == 0:
             out_progress_folder.mkdir(parents=True, exist_ok=True)
         if epoch % 10 == 0:
@@ -219,7 +218,7 @@ if not train_mode:
 tuner = keras_tuner.Hyperband(
     model_builder,
     objective="val_loss",
-    max_epochs=EPOCHS//5,
+    max_epochs=EPOCHS // 5,
     seed=42,
     directory=f"hyperband_{unet_base_arch}",
     project_name=f"unet_run_{unet_base_arch}",

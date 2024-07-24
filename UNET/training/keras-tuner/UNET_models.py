@@ -1,22 +1,16 @@
-from pathlib import Path
-
-from keras.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from keras.layers import Conv2D, Conv2DTranspose
+from keras.layers import Dropout
 from keras.layers import Input
 from keras.layers import MaxPooling2D
 from keras.layers import concatenate
-from keras.layers import Dropout
 from keras.models import Model
-from keras.utils import plot_model
-
 
 from conv2d_block import conv2d_block
 
 
 def create_mini_model(
-    window_size, n_filters, dropouts, kernel_sizes, max_pool_size, batchnorm, **kwargs
+        window_size, n_filters, dropouts, kernel_sizes, max_pool_size, batchnorm, **kwargs
 ):
-
     img_size = (window_size, window_size)
 
     input_img = Input((img_size[0], img_size[1], 1), name="img")
@@ -53,9 +47,8 @@ def create_mini_model(
 
 
 def create_econ_model(
-    window_size, n_filters, dropouts, kernel_sizes, max_pool_size, batchnorm, **kwargs
+        window_size, n_filters, dropouts, kernel_sizes, max_pool_size, batchnorm, **kwargs
 ):
-
     i = 0
     j = 0
     k = 0
@@ -128,9 +121,8 @@ def create_econ_model(
 
 
 def create_large_model(
-    window_size, n_filters, dropouts, kernel_sizes, max_pool_size, batchnorm, **kwargs
+        window_size, n_filters, dropouts, kernel_sizes, max_pool_size, batchnorm, **kwargs
 ):
-
     i = 0
     j = 0
     k = 0
@@ -235,9 +227,8 @@ def create_large_model(
 
 
 def create_largest_model(
-    window_size, n_filters, dropouts, kernel_sizes, max_pool_size, batchnorm, **kwargs
+        window_size, n_filters, dropouts, kernel_sizes, max_pool_size, batchnorm, **kwargs
 ):
-
     i = 0
     j = 0
     k = 0
