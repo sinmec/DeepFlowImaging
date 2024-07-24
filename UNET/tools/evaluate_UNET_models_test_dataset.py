@@ -1,26 +1,13 @@
-import time
-from pathlib import Path
-import cv2
-import matplotlib.pyplot as plt
-import random
-
 import os
-import numpy as np
-import cv2
-from tensorflow import keras
-
-
 import sys
+from pathlib import Path
+
+import cv2
+import numpy as np
+from tensorflow import keras
 
 from UNET.training.simple.read_dataset import read_dataset
 
-sys.path.append("../prediction")
-
-from UNET.prediction.apply_UNET_mask_split import apply_UNET_mask
-from UNET.prediction.divide_image import divide_image
-from UNET.prediction.recreate_UNET_image import recreate_UNET_image
-
-cwd = os.getcwd()
 
 models_dir = "../training/keras-tuner"
 
@@ -28,7 +15,6 @@ dataset_folder = Path(
     "/home/rafaelfc/Data/DeepFlowImaging/UNET/examples/dataset_UNET_PIV_IJMF/"
 )
 
-STRIDE_DIVISIONS = 8
 IMG_SIZE_RESHAPE = 128
 
 keras_model_files = []
