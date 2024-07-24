@@ -68,8 +68,8 @@ def evaluate_ious(anchors, index_anchors_valid, ious, bbox_dataset, image,
 
         # debug
         for k, bbox in enumerate(bbox_dataset):
-            width = bbox[4]
-            height = bbox[3]
+            width = bbox[3]
+            height = bbox[2]
 
             x_b_1 = int(bbox[0] - width / 2)
             y_b_1 = int(bbox[1] - height / 2)

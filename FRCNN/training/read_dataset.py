@@ -6,7 +6,7 @@ import time
 import cv2
 import functools
 
-def read_dataset(img_size, dataset_folder, subset="Training"):
+def read_dataset(img_size, dataset_folder, subset):
     pwd = Path(dataset_folder)
 
     images_folder = Path(pwd, subset, "images")
@@ -14,6 +14,7 @@ def read_dataset(img_size, dataset_folder, subset="Training"):
     txt_folder = Path(pwd, subset, "contours")
 
     _imgs = os.listdir(masks_folder)
+
 
     N_imgs = 0
     _imgs_png = []
@@ -42,12 +43,13 @@ def read_dataset(img_size, dataset_folder, subset="Training"):
         # Reading the corresponding .txt file
         label_file = f"{_file}_contours.txt"
         df = pd.read_csv(str(Path(txt_folder, label_file)), sep=", ", usecols=[1, 2, 3, 4, 5, 6, 7], engine='python')
-        print(df)
         df_np = df.to_numpy()
         N_circles = df_np.shape[0]
 
         df_np = df_np.astype(np.float64)
         bbox_dataset = df_np
         bbox_datasets.append(bbox_dataset)
+
+
 
     return imgs, bbox_datasets

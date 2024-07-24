@@ -33,7 +33,7 @@ def calculate_bbox_intesect_over_union(anchors, index_anchors_valid, bbox_datase
             x_a_1 =  int(valid_anchor[0])
             y_a_1 =  int(valid_anchor[1])
             x_a_2 =  int(valid_anchor[2])
-            y_a_2 =  int(valid_anchor[3])git
+            y_a_2 =  int(valid_anchor[3])
 
             anchor_area = (x_a_2 - x_a_1) * (y_a_2 - y_a_1)
 
