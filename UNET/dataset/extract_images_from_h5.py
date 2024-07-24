@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 import cv2
 import h5py
 import numpy as np
@@ -21,7 +22,7 @@ def extract_images_from_h5(h5_dataset_path, output_path):
 
     print(h5_files)
     for h5_file in tqdm(
-        h5_files, total=len(h5_files), desc="Extracting dataset from .h5 file"
+            h5_files, total=len(h5_files), desc="Extracting dataset from .h5 file"
     ):
 
         imgs_full_dir = Path(output_folder, "imgs_full")
