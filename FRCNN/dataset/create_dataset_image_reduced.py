@@ -89,7 +89,7 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
             original_img = h5_dataset[image_file]["img"][...]
             marked_img = original_img.copy()
 
-            for n_square in range(0, 20):
+            for n_square in range(1, 21):
 
                 base_filename = f"img_{Path(image_file).stem}"
 
@@ -107,65 +107,70 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
                 x_center_random = random.randint(square_size[0] // 2, img_width - square_size[0] // 2)
                 y_center_random = random.randint(square_size[0] // 2, img_height - square_size[0] // 2)
 
-                original_img_cropped = original_img[x_center_random - square_size[0] // 2:x_center_random + square_size[0] // 2,
-                                                    y_center_random - square_size[0] // 2:y_center_random + square_size[0] // 2]
+                x_inicial = x_center_random - square_size[0] // 2
+                x_final = x_center_random + square_size[0] // 2
+                y_inicial = y_center_random - square_size[0] // 2
+                y_final = y_center_random + square_size[0] // 2
+
+                original_img_cropped = original_img[y_inicial:y_final,
+                                                    x_inicial:x_final]
 
                 original_img_cropped = np.array(original_img_cropped, dtype=np.uint8)
                 marked_img_cropped = original_img_cropped.copy()
 
-                for contour_id in h5_dataset[image_file]["contours"]:
-                    contour = h5_dataset[image_file]["contours"][contour_id]
+                # for contour_id in h5_dataset[image_file]["contours"]:
+                #     contour = h5_dataset[image_file]["contours"][contour_id]
+                #
+                #     contour_inside_region = True
+                #
+                #     for point in contour:
+                #         x, y = point[0]
+                #         if not (x_center_random - square_size[0] // 2 <= x <= x_center_random + square_size[0] // 2 and
+                #                 y_center_random - square_size[0] // 2 <= y <= y_center_random + square_size[0] // 2):
+                #             contour_inside_region = False
+                #
+                #     if contour_inside_region:
+                #         if len(contour[...]) < MIN_CONTOUR_LENGTH:
+                #             break
+                #
+                #         (
+                #             (center_x, center_y),
+                #             (ellipse_width, ellipse_height),
+                #             ellipse_angle,
+                #         ) = cv2.fitEllipse(contour[...])
+                #
+                #         marked_img_cropped = cv2.ellipse(
+                #             marked_img_cropped,
+                #             (int(center_x), int(center_y)),
+                #             (int(ellipse_width / 2), int(ellipse_height / 2)),
+                #             ellipse_angle,
+                #             0,
+                #             360,
+                #             (0, 0, 255),
+                #             2,
+                #         )
+                #
+                #         bbox_x, bbox_y, bbox_width, bbox_height = cv2.boundingRect(contour[...])
+                #
+                #         marked_img_cropped = cv2.rectangle(
+                #             marked_img_cropped,
+                #             (bbox_x, bbox_y),
+                #             (bbox_x + bbox_width, bbox_y + bbox_height),
+                #             (0, 255, 0),
+                #             1,
+                #         )
+                #
+                #         output.append(
+                #             [
+                #                 f"{raw_image_filename}, "
+                #                 f"{int(center_x):d}, {int(center_y):d}, "
+                #                 f"{int(bbox_height):d}, {int(bbox_width):d}, "
+                #                 f"{int(ellipse_width):d}, {int(ellipse_height):d}, {ellipse_angle:.2f}"
+                #                 f"\n"
+                #             ]
+                #         )
 
-                    contour_inside_region = True
-
-                    for point in contour:
-                        x, y = point[0]
-                        if not (x_center_random - square_size[0] // 2 <= x <= x_center_random + square_size[0] // 2 and
-                                y_center_random - square_size[0] // 2 <= y <= y_center_random + square_size[0] // 2):
-                            contour_inside_region = False
-
-                    if contour_inside_region:
-                        if len(contour[...]) < MIN_CONTOUR_LENGTH:
-                            break
-
-                        (
-                            (center_x, center_y),
-                            (ellipse_width, ellipse_height),
-                            ellipse_angle,
-                        ) = cv2.fitEllipse(contour[...])
-
-                        marked_img_cropped = cv2.ellipse(
-                            marked_img_cropped,
-                            (int(center_x), int(center_y)),
-                            (int(ellipse_width / 2), int(ellipse_height / 2)),
-                            ellipse_angle,
-                            0,
-                            360,
-                            (0, 0, 255),
-                            2,
-                        )
-
-                        bbox_x, bbox_y, bbox_width, bbox_height = cv2.boundingRect(contour[...])
-
-                        marked_img_cropped = cv2.rectangle(
-                            marked_img_cropped,
-                            (bbox_x, bbox_y),
-                            (bbox_x + bbox_width, bbox_y + bbox_height),
-                            (0, 255, 0),
-                            1,
-                        )
-
-                        output.append(
-                            [
-                                f"{raw_image_filename}, "
-                                f"{int(center_x):d}, {int(center_y):d}, "
-                                f"{int(bbox_height):d}, {int(bbox_width):d}, "
-                                f"{int(ellipse_width):d}, {int(ellipse_height):d}, {ellipse_angle:.2f}"
-                                f"\n"
-                            ]
-                        )
-
-                cv2.imwrite(str(Path(DEBUG_FOLDER, f"{debug_image_filename}")), marked_img_cropped)
+                # cv2.imwrite(str(Path(DEBUG_FOLDER, f"{debug_image_filename}")), marked_img_cropped)
                 cv2.imwrite(str(Path(IMAGES_FOLDER, f"{raw_image_filename}")), original_img_cropped)
                 print('imagem gerada')
 
