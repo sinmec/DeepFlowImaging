@@ -4,7 +4,7 @@ from pathlib import Path
 import random
 import os
 import numpy as np
-
+from tqdm import tqdm
 
 def write_contours(directory, file, data, header, mode="a"):
     with open(Path(directory, f"{file}"), mode, encoding="utf-8") as file:
@@ -46,7 +46,7 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
         if ".h5" not in h5_file:
             continue
         h5_files.append(h5_file)
-    print(h5_files)
+
     for h5_file in h5_files:
         h5_dataset = h5py.File(Path(h5_path, h5_file), "r")
         image_files = h5_dataset.keys()
@@ -89,7 +89,7 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
             original_img = h5_dataset[image_file]["img"][...]
             marked_img = original_img.copy()
 
-            for n_square in range(1, 21):
+            for n_square in tqdm(range(1, 21), desc=f"Cropping image {index+1}/{N_images}", ncols=80, ascii=True, leave=True):
 
                 base_filename = f"img_{Path(image_file).stem}"
 
@@ -107,72 +107,80 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
                 x_center_random = random.randint(square_size[0] // 2, img_width - square_size[0] // 2)
                 y_center_random = random.randint(square_size[0] // 2, img_height - square_size[0] // 2)
 
-                x_inicial = x_center_random - square_size[0] // 2
-                x_final = x_center_random + square_size[0] // 2
-                y_inicial = y_center_random - square_size[0] // 2
-                y_final = y_center_random + square_size[0] // 2
+                x0_crop = x_center_random - square_size[0] // 2
+                x1_crop = x_center_random + square_size[0] // 2
+                y0_crop = y_center_random - square_size[0] // 2
+                y1_crop = y_center_random + square_size[0] // 2
 
-                original_img_cropped = original_img[y_inicial:y_final,
-                                                    x_inicial:x_final]
+                original_img_cropped = original_img[y0_crop:y1_crop,
+                                                    x0_crop:x1_crop]
 
                 original_img_cropped = np.array(original_img_cropped, dtype=np.uint8)
-                marked_img_cropped = original_img_cropped.copy()
+                marked_img_original = original_img.copy()
 
-                # for contour_id in h5_dataset[image_file]["contours"]:
-                #     contour = h5_dataset[image_file]["contours"][contour_id]
-                #
-                #     contour_inside_region = True
-                #
-                #     for point in contour:
-                #         x, y = point[0]
-                #         if not (x_center_random - square_size[0] // 2 <= x <= x_center_random + square_size[0] // 2 and
-                #                 y_center_random - square_size[0] // 2 <= y <= y_center_random + square_size[0] // 2):
-                #             contour_inside_region = False
-                #
-                #     if contour_inside_region:
-                #         if len(contour[...]) < MIN_CONTOUR_LENGTH:
-                #             break
-                #
-                #         (
-                #             (center_x, center_y),
-                #             (ellipse_width, ellipse_height),
-                #             ellipse_angle,
-                #         ) = cv2.fitEllipse(contour[...])
-                #
-                #         marked_img_cropped = cv2.ellipse(
-                #             marked_img_cropped,
-                #             (int(center_x), int(center_y)),
-                #             (int(ellipse_width / 2), int(ellipse_height / 2)),
-                #             ellipse_angle,
-                #             0,
-                #             360,
-                #             (0, 0, 255),
-                #             2,
-                #         )
-                #
-                #         bbox_x, bbox_y, bbox_width, bbox_height = cv2.boundingRect(contour[...])
-                #
-                #         marked_img_cropped = cv2.rectangle(
-                #             marked_img_cropped,
-                #             (bbox_x, bbox_y),
-                #             (bbox_x + bbox_width, bbox_y + bbox_height),
-                #             (0, 255, 0),
-                #             1,
-                #         )
-                #
-                #         output.append(
-                #             [
-                #                 f"{raw_image_filename}, "
-                #                 f"{int(center_x):d}, {int(center_y):d}, "
-                #                 f"{int(bbox_height):d}, {int(bbox_width):d}, "
-                #                 f"{int(ellipse_width):d}, {int(ellipse_height):d}, {ellipse_angle:.2f}"
-                #                 f"\n"
-                #             ]
-                #         )
+                for contour_id in h5_dataset[image_file]["contours"]:
+                    contour = h5_dataset[image_file]["contours"][contour_id]
 
-                # cv2.imwrite(str(Path(DEBUG_FOLDER, f"{debug_image_filename}")), marked_img_cropped)
+                    contour_inside_region = True
+
+                    for point in contour:
+                        x, y = point[0]
+                        if not (x0_crop <= x <= x1_crop and
+                                y0_crop <= y <= y1_crop):
+                            contour_inside_region = False
+
+                    if contour_inside_region:
+                        if len(contour[...]) < MIN_CONTOUR_LENGTH:
+                            break
+
+                        (
+                            (center_x, center_y),
+                            (ellipse_width, ellipse_height),
+                            ellipse_angle,
+                        ) = cv2.fitEllipse(contour[...])
+
+                        center_x_translated = center_x - x0_crop
+                        center_y_translated = center_y - y0_crop
+
+                        marked_img_original = cv2.ellipse(
+                            marked_img_original,
+                            (int(center_x), int(center_y)),
+                            (int(ellipse_width / 2), int(ellipse_height / 2)),
+                            ellipse_angle,
+                            0,
+                            360,
+                            (0, 0, 255),
+                            2,
+                        )
+
+                        bbox_x, bbox_y, bbox_width, bbox_height = cv2.boundingRect(contour[...])
+
+                        bbox_x_translated = bbox_x - x0_crop
+                        bbox_y_translated = bbox_y - y0_crop
+
+                        marked_img_original = cv2.rectangle(
+                            marked_img_original,
+                            (bbox_x, bbox_y),
+                            (bbox_x + bbox_width, bbox_y + bbox_height),
+                            (0, 255, 0),
+                            1,
+                        )
+
+                        output.append(
+                            [
+                                f"{raw_image_filename}, "
+                                f"{int(center_x_translated):d}, {int(center_y_translated):d}, "
+                                f"{int(bbox_height):d}, {int(bbox_width):d}, "
+                                f"{int(ellipse_width):d}, {int(ellipse_height):d}, {ellipse_angle:.2f}"
+                                f"\n"
+                            ]
+                        )
+
+                marked_img_cropped = marked_img_original[y0_crop:y1_crop,
+                                                         x0_crop:x1_crop]
+
+                cv2.imwrite(str(Path(DEBUG_FOLDER, f"{debug_image_filename}")), marked_img_cropped)
                 cv2.imwrite(str(Path(IMAGES_FOLDER, f"{raw_image_filename}")), original_img_cropped)
-                print('imagem gerada')
 
                 with open(
                     Path(CONTOURS_FOLDER, f"{cnt_list_filename}"), "a", encoding="utf-8"
@@ -183,4 +191,4 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION):
                     file.close()
 
 
-create_dataset(os.getcwd(), os.getcwd(), 2, 2)
+create_dataset(os.getcwd(), os.getcwd(), 1, 1)
