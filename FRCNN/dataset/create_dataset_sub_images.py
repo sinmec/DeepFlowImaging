@@ -161,11 +161,12 @@ def create_dataset_sub_images(h5_path, output_path, N_VALIDATION, N_VERIFICATION
                 original_img_cropped = original_img[y0_crop:y1_crop,
                                                     x0_crop:x1_crop]
 
-                UNET_img_cropped = img_UNET[y0_crop:y1_crop,
-                                                    x0_crop:x1_crop]
+                if UNET_model_options:
+                    UNET_img_cropped = img_UNET[y0_crop:y1_crop,
+                                                        x0_crop:x1_crop]
 
-                marked_img_UNET_cropped = marked_img_UNET[y0_crop:y1_crop,
-                                                    x0_crop:x1_crop]
+                    marked_img_UNET_cropped = marked_img_UNET[y0_crop:y1_crop,
+                                                        x0_crop:x1_crop]
 
                 original_img_cropped = np.array(original_img_cropped, dtype=np.uint8)
                 marked_img_original = original_img.copy()
