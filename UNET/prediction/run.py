@@ -51,8 +51,8 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures.append(future)
 
     for future in tqdm(
-        concurrent.futures.as_completed(futures),
-        total=len(futures),
-        desc="Processing images",
+            concurrent.futures.as_completed(futures),
+            total=len(futures),
+            desc="Processing images",
     ):
         future.result()
