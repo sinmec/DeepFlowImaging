@@ -1,13 +1,14 @@
 import random
 from pathlib import Path
-import numpy as np
+
 import cv2
 import h5py
+import numpy as np
 from tqdm import tqdm
 
 
 def create_random_dataset(
-    h5_file_name, image_width, image_height, N_IMAGES, output_path, ellipse_options
+        h5_file_name, image_width, image_height, N_IMAGES, output_path, ellipse_options
 ):
     output_path = Path(output_path, "output")
     output_path.mkdir(parents=True, exist_ok=True)

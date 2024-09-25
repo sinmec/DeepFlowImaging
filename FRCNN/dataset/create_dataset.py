@@ -1,10 +1,12 @@
 import sys
 
+import os
+import random
+from pathlib import Path
+
+
 import cv2
 import h5py
-from pathlib import Path
-import random
-import os
 
 import numpy as np
 from tensorflow import keras
@@ -84,8 +86,8 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION, UNET_mode
         random.Random(13).shuffle(shuffled_index)
         validation_indexes = shuffled_index[:N_VALIDATION]
         verification_indexes = shuffled_index[
-            N_VALIDATION : N_VALIDATION + N_VERIFICATION
-        ]
+                               N_VALIDATION: N_VALIDATION + N_VERIFICATION
+                               ]
 
         MIN_CONTOUR_LENGTH = 5
 
@@ -218,7 +220,7 @@ def create_dataset(h5_path, output_path, N_VALIDATION, N_VERIFICATION, UNET_mode
                 cv2.imwrite(str(Path(DEBUG_FOLDER, f"{debug_image_filename}")), np.hstack((marked_img, marked_img_UNET)))
 
             with open(
-                Path(CONTOURS_FOLDER, f"{cnt_list_filename}"), "a", encoding="utf-8"
+                    Path(CONTOURS_FOLDER, f"{cnt_list_filename}"), "a", encoding="utf-8"
             ) as file:
                 file.write(header)
                 for line in output:

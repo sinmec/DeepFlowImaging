@@ -1,6 +1,7 @@
 import os
 import random
 from pathlib import Path
+
 import cv2
 import numpy as np
 from tqdm import tqdm
@@ -19,7 +20,6 @@ N_VERIFICATION = 2
 
 
 def create_dataset(path, sub_image_size, random_samples, N_VALIDATION, N_VERIFICATION):
-
     # Dataset folder
     dataset_folder = path
 
@@ -67,10 +67,10 @@ def create_dataset(path, sub_image_size, random_samples, N_VALIDATION, N_VERIFIC
     shuffled_index = [*range(N_images)]
     random.Random(13).shuffle(shuffled_index)
     validation_indexes = shuffled_index[:N_VALIDATION]
-    verification_indexes = shuffled_index[N_VALIDATION : N_VALIDATION + N_VERIFICATION]
+    verification_indexes = shuffled_index[N_VALIDATION: N_VALIDATION + N_VERIFICATION]
 
     for index_i, img_file in tqdm(
-        enumerate(imgs), total=N_images, desc="Creating sub-images"
+            enumerate(imgs), total=N_images, desc="Creating sub-images"
     ):
 
         if index_i in validation_indexes:
