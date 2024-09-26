@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 
-def extract_images_from_h5(h5_dataset_path, output_path):
+def extract_images_from_h5(h5_dataset_path, output_path, contour_line_width=cv2.FILLED):
     h5_dataset_folder = Path(h5_dataset_path)
     output_folder = Path(output_path)
 
@@ -43,7 +43,7 @@ def extract_images_from_h5(h5_dataset_path, output_path):
             for contour_id in h5_dataset[image_file]["contours"]:
                 contour = h5_dataset[image_file]["contours"][contour_id]
                 cv2.drawContours(
-                    mask_img, [contour[...]], -1, [255, 255, 255], cv2.FILLED
+                    mask_img, [contour[...]], -1, [255, 255, 255], contour_line_width
                 )
 
             cv2.imwrite(
