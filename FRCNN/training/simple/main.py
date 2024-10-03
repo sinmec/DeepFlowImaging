@@ -13,6 +13,7 @@ import math
 import keras_tuner as kt
 
 import config as cfg
+from FRCNN.training.simple.save_model_configuration import save_model_configuration
 
 from read_dataset import read_dataset
 from create_anchors import create_anchors
@@ -28,6 +29,10 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.utils import plot_model
 
+
+
+
+
 # Loading image size from config file
 img_size = cfg.IMG_SIZE
 
@@ -40,6 +45,12 @@ ANCHOR_SIZES = np.array(cfg.ANCHOR_REAL_SIZE) // N_SUB
 # Defininf number of anchors sized and rations
 N_ANCHORS = len(ANCHOR_SIZES)
 N_RATIOS = len(cfg.ANCHOR_RATIOS)
+
+
+# Defining the best fRCNN model name
+best_model_name = f"best_fRCNN_{cfg.MODE}_{N_SUB:02d}.keras"
+filepath = Path(f'{Path(best_model_name).stem}_CONFIG.h5')
+save_model_configuration(filepath, ANCHOR_SIZES, N_SUB)
 
 # Defining the dataset folder
 dataset_folder = Path("/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/example_dataset_FRCNN_PIV_subimage/Output/")
@@ -343,9 +354,6 @@ def validation_generator(imgs, bbox_datasets):
 
 
 
-# Defining the best fRCNN model name
-best_model_name = "best_fRCNN_%s_%02d.keras" % (cfg.MODE, N_SUB)
-
 # Model checkpoint for saving best models
 checkpoint = ModelCheckpoint(best_model_name,
                              verbose=1,
@@ -359,6 +367,8 @@ early_stopping = EarlyStopping(monitor='val_loss',
                                verbose=1,
                                patience=cfg.N_PATIENCE)
 
+
+
 validation_data = generate_validation_data(images_val, bbox_datasets_val)
 
 model.fit(input_generator(images_train, bbox_datasets_train),
@@ -368,15 +378,6 @@ model.fit(input_generator(images_train, bbox_datasets_train),
           # validation_data=validation_generator(images_val, bbox_datasets_val))
           validation_data=validation_data)  # Why?
 
-# Storing RPN/f-RCNN information for model usage
-FRCNN_model = h5.File(Path(f'{best_model_name}_CONFIG.h5'), 'w')
-FRCNN_model.attrs['MODE'] = cfg.MODE
-FRCNN_model.attrs['POS_IOU_THRESHOLD'] = cfg.POS_IOU_THRESHOLD
-FRCNN_model.attrs['NEG_IOU_THRESHOLD'] = cfg.NEG_IOU_THRESHOLD
-FRCNN_model.attrs['IMG_SIZE'] = cfg.IMG_SIZE
-FRCNN_model.attrs['N_SUB'] = N_SUB
-FRCNN_model.attrs['ANCHOR_RATIOS'] = cfg.ANCHOR_RATIOS
-FRCNN_model.attrs['ANCHOR_SIZES'] = ANCHOR_SIZES
-FRCNN_model.close()
+
 
 print('Done!')

@@ -18,7 +18,7 @@ from create_anchors import create_anchors
 from return_bbox_from_model import return_bbox_from_model
 
 model_file = Path("/home/rafaelfc/Data/DeepFlowImaging/FRCNN/training/simple/best_fRCNN_mask_16.keras")
-model_config_file = Path("/home/rafaelfc/Data/DeepFlowImaging/FRCNN/training/simple/best_fRCNN_mask_16.keras_CONFIG.h5")
+model_config_file = Path("/home/rafaelfc/Data/DeepFlowImaging/FRCNN/training/simple/best_fRCNN_mask_16_CONFIG.h5")
 
 model = keras.models.load_model(model_file, compile=False)
 
@@ -33,7 +33,7 @@ POS_IOU_THRESHOLD = h5_model.attrs['POS_IOU_THRESHOLD']
 NEG_IOU_THRESHOLD = h5_model.attrs['NEG_IOU_THRESHOLD']
 h5_model.close()
 
-out_folder = Path('examples')
+out_folder = Path('examples_TEST')
 out_folder.mkdir(exist_ok=True)
 
 img_size = IMG_SIZE
