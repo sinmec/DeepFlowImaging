@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import tensorflow.keras.backend as K
 import tensorflow as tf
+# tf.config.run_functions_eagerly(True)
 from tensorflow import keras
 import random
 import h5py as h5
@@ -30,9 +31,6 @@ from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.utils import plot_model
 
 
-
-
-
 # Loading image size from config file
 img_size = cfg.IMG_SIZE
 
@@ -50,7 +48,7 @@ N_RATIOS = len(cfg.ANCHOR_RATIOS)
 # Defining the best fRCNN model name
 best_model_name = f"best_fRCNN_{cfg.MODE}_{N_SUB:02d}.keras"
 filepath = Path(f'{Path(best_model_name).stem}_CONFIG.h5')
-save_model_configuration(filepath, ANCHOR_SIZES, N_SUB)
+save_model_configuration(filepath, N_SUB, ANCHOR_SIZES)
 
 # Defining the dataset folder
 dataset_folder = Path("/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/example_dataset_FRCNN_PIV_subimage/Output/")
@@ -149,72 +147,11 @@ output_regressor = Conv2D(
 )(last_layer)
 
 opt = tf.keras.optimizers.Adam(learning_rate=cfg.ADAM_LEARNING_RATE)
-model = Model(inputs=[input_image], outputs=[output_scores, output_regressor])
+model = Model(inputs=[input_image], outputs=[output_regressor, output_scores])
 model.compile(optimizer=opt, loss={'l_reg': loss_cls, 'bb_reg': loss_reg})
 
 plot_model(model, show_shapes=True, to_file="model_true.png")
 model.summary()
-
-
-# TODO: Check if the validation images are not using anyhwere
-# TODO: Use the random-seed option
-# TODO: Create an auxiliary test-dataset
-def generate_validation_data(imgs, bbox_datasets):
-    # Creating the anchors
-    anchors, index_anchors_valid = create_anchors(img_size, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES)
-
-    # Number of validation images
-    N_validation = imgs.shape[0]
-
-    print('I am being called!')
-
-    # Initializing the arrays
-    batch_imgs = np.zeros((N_validation, img_size[0], img_size[1], 1), dtype=np.float64)
-    batch_anchor_labels = np.zeros((N_validation, img_size[0] // N_SUB, img_size[1] // N_SUB, N_ANCHORS * N_RATIOS),
-                                   dtype=np.float64)
-    batch_anchor_locations = np.zeros(
-        (N_validation, img_size[0] // N_SUB, img_size[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS), dtype=np.float64)
-
-    index = 0
-    for img, bbox_dataset in zip(imgs, bbox_datasets):
-        # Calculating anchor/bbox_dataset IoUs
-        ious = calculate_bbox_intesect_over_union(anchors, index_anchors_valid, bbox_dataset, img)
-
-        # Evaluating if the anchors are valid or invalid based on the IoUs
-        labels, anchor_argmax_ious = evaluate_ious(anchors, index_anchors_valid, ious, bbox_dataset, img,
-                                                   cfg.POS_IOU_THRESHOLD, cfg.NEG_IOU_THRESHOLD, debug=False)
-
-        # Creating the samples for training
-        anchor_labels = create_samples_for_training(anchors, index_anchors_valid, anchor_argmax_ious, labels, ious,
-                                                    bbox_dataset, img, debug=False)
-
-        # Reshaping the anchor labels to follow the image/sub-image coordinates
-        anchor_labels = np.reshape(anchor_labels, (img_size[0] // N_SUB, img_size[1] // N_SUB, N_ANCHORS * N_RATIOS))
-
-        # Parametrizing the anchor box properties
-        anchor_locations = parametrize_anchor_box_properties(anchors, anchor_argmax_ious, labels, ious, bbox_dataset,
-                                                             img)
-
-        # Reshaping the anchor locations to follow the image/sub-image coordinates
-        anchor_locations = np.reshape(anchor_locations,
-                                      (img_size[0] // N_SUB, img_size[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS))
-
-        # Converting to float
-        anchor_labels = anchor_labels.astype(np.float64)
-
-        # Storing images 
-        batch_imgs[index, :, :, 0] = img
-
-        # Updating anchor labels and properties(locations)
-        batch_anchor_labels[index, :, :, :] = anchor_labels
-        batch_anchor_locations[index, :, :, :] = anchor_locations
-
-        index += 1
-        print(index)
-
-    # Returning samples for model validation
-    return batch_imgs, (batch_anchor_labels, batch_anchor_locations)
-
 
 def input_generator(imgs, bbox_datasets):
     # Creating the anchors
@@ -279,79 +216,7 @@ def input_generator(imgs, bbox_datasets):
             batch_anchor_locations[k, :, :, :] = anchor_locations
 
         # Returning/Yielding samples for model training
-        yield batch_imgs, (batch_anchor_labels, batch_anchor_locations)
-
-
-
-def validation_generator(imgs, bbox_datasets):
-    # Creating the anchors
-    anchors, index_anchors_valid = create_anchors(img_size, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES)
-
-    # while 1:
-
-
-    # Picking a random number of images for training
-    random_indexes = np.random.randint(low=0, high=len(imgs) - 1, size=cfg.N_DATA_EPOCHS)
-    # Initializing the arrays
-    batch_imgs = np.zeros((len(random_indexes), img_size[0], img_size[1], 1), dtype=np.float64)
-    batch_anchor_labels = np.zeros(
-        (len(random_indexes), img_size[0] // N_SUB, img_size[1] // N_SUB, N_ANCHORS * N_RATIOS), dtype=np.float64)
-    batch_anchor_locations = np.zeros(
-        (len(random_indexes), img_size[0] // N_SUB, img_size[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS),
-        dtype=np.float64)
-
-    # print('go')
-    print('validation', random_indexes, len(random_indexes))
-
-    # Looping over the selected indexes and generating the input dataset
-    for k, random_index in enumerate(random_indexes):
-        # Retriegving the image and the bbox-values
-        img = imgs[random_index]
-        bbox_dataset = bbox_datasets[random_index]
-
-        # Calculating anchor/bbox_dataset IoUs
-        ious = calculate_bbox_intesect_over_union(anchors, index_anchors_valid, bbox_dataset, img)
-
-        # Evaluating if the anchors are valid or invalid based on the IoUs
-        labels, anchor_argmax_ious = evaluate_ious(anchors, index_anchors_valid, ious, bbox_dataset, img,
-                                                   cfg.POS_IOU_THRESHOLD, cfg.NEG_IOU_THRESHOLD)
-
-        # Creating the samples for training
-        # if k == 1:
-        # anchor_labels = create_samples_for_training(anchors, index_anchors_valid, anchor_argmax_ious, labels, ious, bbox_dataset, img, debug=False)
-        # else:
-        # anchor_labels = create_samples_for_training(anchors, index_anchors_valid, anchor_argmax_ious, labels, ious, bbox_dataset, img, debug=False)
-        anchor_labels = create_samples_for_training(anchors, index_anchors_valid, anchor_argmax_ious, labels, ious,
-                                                    bbox_dataset, img, debug=False)
-
-        # Reshaping the anchor labels to follow the image/sub-image coordinates
-        anchor_labels = np.reshape(anchor_labels,
-                                   (img_size[0] // N_SUB, img_size[1] // N_SUB, N_ANCHORS * N_RATIOS))
-
-        # Parametrizing the anchor box properties
-        anchor_locations = parametrize_anchor_box_properties(anchors, anchor_argmax_ious, labels, ious,
-                                                             bbox_dataset, img)
-
-        # Reshaping the anchor locations to follow the image/sub-image coordinates
-        anchor_locations = np.reshape(anchor_locations,
-                                      (img_size[0] // N_SUB, img_size[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS))
-
-        # Converting to float
-        anchor_labels = anchor_labels.astype(np.float64)
-
-        # Storing images
-        batch_imgs[k, :, :, 0] = img
-
-        # print('input', random_indexes)
-
-        # Updating anchor labels and properties(locations)
-        batch_anchor_labels[k, :, :, :] = anchor_labels
-        batch_anchor_locations[k, :, :, :] = anchor_locations
-
-    # Returning/Yielding samples for model training
-    return batch_imgs, (batch_anchor_labels, batch_anchor_locations)
-
-
+        yield batch_imgs, (batch_anchor_locations, batch_anchor_labels)
 
 
 # Model checkpoint for saving best models
@@ -369,14 +234,13 @@ early_stopping = EarlyStopping(monitor='val_loss',
 
 
 
-validation_data = generate_validation_data(images_val, bbox_datasets_val)
 
 model.fit(input_generator(images_train, bbox_datasets_train),
-          steps_per_epoch=1,
+          validation_data=input_generator(images_val, bbox_datasets_val),
+          validation_steps=100,
+          steps_per_epoch=100,
           epochs=cfg.N_EPOCHS,
-          callbacks=[checkpoint, early_stopping],
-          # validation_data=validation_generator(images_val, bbox_datasets_val))
-          validation_data=validation_data)  # Why?
+          callbacks=[checkpoint, early_stopping])
 
 
 

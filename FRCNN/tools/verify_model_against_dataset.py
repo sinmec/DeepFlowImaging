@@ -78,8 +78,8 @@ for k in range(N_imgs):
 
     # Infering the labels(Acc.) and bbox positions from the RPN/f-RCNN model
     inference = model.predict(img)
-    labels_pred = inference[0]  # labels - probability of being foreground (Acc.)
-    bbox_pred = inference[1]  # bbox leftmost and right most points
+    bbox_pred = inference[0]  # bbox leftmost and right most points
+    labels_pred = inference[1]  # labels - probability of being foreground (Acc.)
 
     # Raveling/Flattening the two returned values
     # TODO: I think that I ravel the output because it returns a multi-dimensional list.
