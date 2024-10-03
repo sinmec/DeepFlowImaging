@@ -1,8 +1,10 @@
+import os
 from pathlib import Path
 
-import pandas as pd
+import cv2
 import numpy as np
-import os, time, cv2, functools
+import pandas as pd
+
 
 def read_dataset(img_size, dataset_folder, subset="Training"):
 
@@ -22,8 +24,22 @@ def read_dataset(img_size, dataset_folder, subset="Training"):
 
     # Reading the csv and image files
     bbox_datasets = []
-    imgs = np.zeros((N_imgs, img_size[0], img_size[1],), dtype=float)
-    raw_imgs = np.zeros((N_imgs, img_size[0], img_size[1],), dtype=float)
+    imgs = np.zeros(
+        (
+            N_imgs,
+            img_size[0],
+            img_size[1],
+        ),
+        dtype=float,
+    )
+    raw_imgs = np.zeros(
+        (
+            N_imgs,
+            img_size[0],
+            img_size[1],
+        ),
+        dtype=float,
+    )
 
     for i, _img in enumerate(_imgs_png):
         _file = _img
@@ -39,8 +55,19 @@ def read_dataset(img_size, dataset_folder, subset="Training"):
 
         # Reading the corresponding .txt file
         label_file = f"{_file}_contours.txt"
-        cols_to_use = ["ellipse_center_x", "ellipse_center_y",  "bbox_height", "bbox_width"]
-        df = pd.read_csv(str(Path(txt_folder, label_file)), sep=", ", usecols=cols_to_use, engine='python', index_col=False,)[cols_to_use]
+        cols_to_use = [
+            "ellipse_center_x",
+            "ellipse_center_y",
+            "bbox_height",
+            "bbox_width",
+        ]
+        df = pd.read_csv(
+            str(Path(txt_folder, label_file)),
+            sep=", ",
+            usecols=cols_to_use,
+            engine="python",
+            index_col=False,
+        )[cols_to_use]
         df_np = df.to_numpy()
 
         df_np = df_np.astype(np.float64)
@@ -67,8 +94,8 @@ def read_dataset(img_size, dataset_folder, subset="Training"):
                 p_2 = (x_b_2, y_b_2)
                 cv2.rectangle(__img, p_1, p_2, (0, 255, 255), 4)
 
-            cv2.namedWindow('test', cv2.WINDOW_NORMAL)
-            cv2.imshow('test', __img)
+            cv2.namedWindow("test", cv2.WINDOW_NORMAL)
+            cv2.imshow("test", __img)
             cv2.waitKey(0)
         i += 1
 

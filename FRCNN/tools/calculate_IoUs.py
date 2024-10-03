@@ -1,6 +1,5 @@
 import numpy as np
-import cv2
-from numba import njit
+
 
 # @njit
 def calculate_IoUs(bboxes_dataset, bboxes_predicted):
@@ -38,7 +37,9 @@ def calculate_IoUs(bboxes_dataset, bboxes_predicted):
             inter_area = max(0, xB - xA) * max(0, yB - yA)
 
             # Calculating IoU for given dataset/pred pair
-            iou = float(inter_area) / float(bbox_pred_area + bbox_dset_area - inter_area)
+            iou = float(inter_area) / float(
+                bbox_pred_area + bbox_dset_area - inter_area
+            )
 
             # Updating IoU array
             ious[i, j] = iou

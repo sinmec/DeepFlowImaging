@@ -2,15 +2,20 @@ import cv2
 import numpy as np
 
 
-def evaluate_ious(anchors, index_anchors_valid, ious, bbox_dataset, image,
-                  POS_IOU_THRESHOLD, NEG_IOU_THRESHOLD, debug=False):
-    # Initializing labels with a -1 value
+def evaluate_ious(
+    anchors,
+    index_anchors_valid,
+    ious,
+    bbox_dataset,
+    image,
+    POS_IOU_THRESHOLD,
+    NEG_IOU_THRESHOLD,
+    debug=False,
+):
+
     labels = np.zeros(len(anchors), dtype=np.int32)
     labels[...] = -1
 
-    # Mask is the anchors which are valid
-    # It seems that I am not doing any distinction
-    # betweetn valid and invalid anchors
     mask = np.zeros_like(labels)
     mask[index_anchors_valid] = 1
 
@@ -20,27 +25,16 @@ def evaluate_ious(anchors, index_anchors_valid, ious, bbox_dataset, image,
         image_rgb = image.astype(np.uint8)
         image_rgb = cv2.cvtColor(image_rgb, cv2.COLOR_GRAY2BGR)
 
-    # index of the max IOUs from a given ground-truth object
     gt_argmax_ious = ious.argmax(axis=1)
     gt_max_ious = ious[np.arange(ious.shape[0]), gt_argmax_ious]
 
-    # index of the max anchor box IOU for a given ground-truth object
     anchor_argmax_ious = ious.argmax(axis=0)
     anchor_max_ious = ious[anchor_argmax_ious, np.arange(ious.shape[1])]
 
-    # If the label has a low a IoU value, it is labelled as background
-    # On the contrary, it is labelled as foreground
     labels[anchor_max_ious < NEG_IOU_THRESHOLD] = 0
     labels[anchor_max_ious >= POS_IOU_THRESHOLD] = 1
     # labels[gt_argmax_ious] = 1
 
-    # TODO: Check values (0, 1, -1)
-
-    # Here I was applying the mask
-    # index_outside = mask[mask == 0]
-    # labels[index_outside] = -1
-
-    # From down here it is only debugging functions..
     if debug:
         print("max_IOU", np.max(ious))
         print("ious_shape", ious.shape)

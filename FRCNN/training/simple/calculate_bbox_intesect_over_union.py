@@ -3,7 +3,9 @@ from numba import njit
 
 
 @njit
-def calculate_bbox_intesect_over_union(anchors, index_anchors_valid, bbox_dataset, image):
+def calculate_bbox_intesect_over_union(
+    anchors, index_anchors_valid, bbox_dataset, image
+):
     ious = np.zeros((len(bbox_dataset), len(anchors)), dtype=np.float32)
 
     valid_anchors = anchors[index_anchors_valid]

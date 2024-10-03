@@ -1,39 +1,40 @@
 import os
-from pathlib import Path
-
-import cv2
-import numpy as np
-import tensorflow.keras.backend as K
-import tensorflow as tf
-from tensorflow import keras
-import h5py as h5
 
 # Essa eh uma gambi horrorosa!!!! Evite ao maximo fazer algo do tipo!!!
 import sys
+from pathlib import Path
+
+import cv2
+import h5py as h5
+import numpy as np
+from tensorflow import keras
 
 sys.path.append("../training/simple")
 
-from read_dataset import read_dataset
 from create_anchors import create_anchors
 from return_bbox_from_model import return_bbox_from_model
 
-model_file = Path("/home/rafaelfc/Data/DeepFlowImaging/FRCNN/training/simple/best_fRCNN_mask_16.keras")
-model_config_file = Path("/home/rafaelfc/Data/DeepFlowImaging/FRCNN/training/simple/best_fRCNN_mask_16.keras_CONFIG.h5")
+model_file = Path(
+    "/home/rafaelfc/Data/DeepFlowImaging/FRCNN/training/simple/best_fRCNN_mask_16.keras"
+)
+model_config_file = Path(
+    "/home/rafaelfc/Data/DeepFlowImaging/FRCNN/training/simple/best_fRCNN_mask_16.keras_CONFIG.h5"
+)
 
 model = keras.models.load_model(model_file, compile=False)
 
-h5_model = h5.File(model_config_file, 'r')
+h5_model = h5.File(model_config_file, "r")
 
-N_SUB         = h5_model.attrs["N_SUB"]
-ANCHOR_SIZES      = h5_model.attrs["ANCHOR_SIZES"]
-ANCHOR_RATIOS     = h5_model.attrs["ANCHOR_RATIOS"]
-IMG_SIZE          = h5_model.attrs["IMG_SIZE"]
-MODE              = h5_model.attrs["MODE"]
-POS_IOU_THRESHOLD = h5_model.attrs['POS_IOU_THRESHOLD']
-NEG_IOU_THRESHOLD = h5_model.attrs['NEG_IOU_THRESHOLD']
+N_SUB = h5_model.attrs["N_SUB"]
+ANCHOR_SIZES = h5_model.attrs["ANCHOR_SIZES"]
+ANCHOR_RATIOS = h5_model.attrs["ANCHOR_RATIOS"]
+IMG_SIZE = h5_model.attrs["IMG_SIZE"]
+MODE = h5_model.attrs["MODE"]
+POS_IOU_THRESHOLD = h5_model.attrs["POS_IOU_THRESHOLD"]
+NEG_IOU_THRESHOLD = h5_model.attrs["NEG_IOU_THRESHOLD"]
 h5_model.close()
 
-out_folder = Path('examples_2')
+out_folder = Path("examples_2")
 out_folder.mkdir(exist_ok=True)
 
 img_size = IMG_SIZE
@@ -41,33 +42,36 @@ img_size = IMG_SIZE
 RPN_top_samples = 100000
 
 # Creating the anchors
-anchors, index_anchors_valid = create_anchors(img_size, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES)
+anchors, index_anchors_valid = create_anchors(
+    img_size, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES
+)
 
-img_files = os.listdir('/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/dataset_FRCNN_PIV_IJMF/Training/images/')
+img_files = os.listdir(
+    "/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/dataset_FRCNN_PIV_IJMF/Training/images/"
+)
 for img_file in img_files:
-    if not img_file.endswith('.jpg'):
+    if not img_file.endswith(".jpg"):
         continue
-    img_raw_file = f'/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/dataset_FRCNN_PIV_IJMF/Training/images/{img_file}'
-    img_mask_file = f'/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/dataset_FRCNN_PIV_IJMF/Training/masks/{img_file}'
-    __img = cv2.imread(img_raw_file,0)
-    __mask = cv2.imread(img_mask_file,0)
+    img_raw_file = f"/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/dataset_FRCNN_PIV_IJMF/Training/images/{img_file}"
+    img_mask_file = f"/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/dataset_FRCNN_PIV_IJMF/Training/masks/{img_file}"
+    __img = cv2.imread(img_raw_file, 0)
+    __mask = cv2.imread(img_mask_file, 0)
 
-    __img = __img[:2*512, 72:(72+512)]
-    __mask = __mask[:2*512, 72:(72+512)]
+    __img = __img[: 2 * 512, 72 : (72 + 512)]
+    __mask = __mask[: 2 * 512, 72 : (72 + 512)]
 
-    img_raw_rgb_FULL = np.zeros((__img.shape[0], __img.shape[1],3), dtype=np.uint8)
+    img_raw_rgb_FULL = np.zeros((__img.shape[0], __img.shape[1], 3), dtype=np.uint8)
 
     # new_img_I = 1100 // 512
     # mega_img = np.zeros(512 * (new_img_I - 1))
 
     for N in range(2):
 
-        _img =__img[N*512:(N+1)*512, :512]
-        _mask =__mask[N*512:(N+1)*512, :512]
+        _img = __img[N * 512 : (N + 1) * 512, :512]
+        _mask = __mask[N * 512 : (N + 1) * 512, :512]
 
         # _img = __img[:512, :512]
         # _mask = __mask[:512, :512]
-
 
         img_out = _img
         img_mask_rgb = cv2.cvtColor(_mask, cv2.COLOR_GRAY2BGR)
@@ -118,7 +122,9 @@ for img_file in img_files:
             label_A = labels_pred_rav[k_A]
 
             # Returning the bounding boxes points in pixel dimensions
-            BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav, labels_pred_rav)
+            BBOX_A = return_bbox_from_model(
+                k_A, anchors, bbox_pred_rav, labels_pred_rav
+            )
 
             # Updating the two lists to be used in the IOU OpenCV built-in implementation
             bboxes.append(BBOX_A)
@@ -140,7 +146,9 @@ for img_file in img_files:
         for index in nms_indexes:
             # Exaclty as in the previous loop...
             k_A = labels_pred_rav_argsort[index]
-            BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav, labels_pred_rav)
+            BBOX_A = return_bbox_from_model(
+                k_A, anchors, bbox_pred_rav, labels_pred_rav
+            )
 
             # Now I am modifying the bounding boxes, for the NMSBoxes functions, the bboxes
             # are not defined through their points..
@@ -173,7 +181,8 @@ for img_file in img_files:
         # cv2.waitKey(0)
         # cv2.imwrite(os.path.join(out_folder, "fully_%06d.jpg" % N), img_raw_rgb)
 
-        img_raw_rgb_FULL[N * 512:(N + 1) * 512, :512] = img_raw_rgb
+        img_raw_rgb_FULL[N * 512 : (N + 1) * 512, :512] = img_raw_rgb
 
-    cv2.imwrite(os.path.join(out_folder, f"FULL_{Path(img_file).stem}.jpg"), img_raw_rgb_FULL)
-
+    cv2.imwrite(
+        os.path.join(out_folder, f"FULL_{Path(img_file).stem}.jpg"), img_raw_rgb_FULL
+    )
