@@ -1,19 +1,19 @@
+import os
+import random
 import sys
+from pathlib import Path
 
 import cv2
 import h5py
-from pathlib import Path
-import random
-import os
 import numpy as np
+from tensorflow import keras
 from tqdm import tqdm
 
-from tensorflow import keras
-
-sys.path.append('../../UNET/')
+sys.path.append("../../UNET/")
 from prediction.apply_UNET_mask_split import apply_UNET_mask
 from prediction.divide_image import divide_image
 from prediction.recreate_UNET_image import recreate_UNET_image
+
 
 def write_contours(directory, file, data, header, mode="a"):
     with open(Path(directory, f"{file}"), mode, encoding="utf-8") as file:
@@ -23,13 +23,23 @@ def write_contours(directory, file, data, header, mode="a"):
         file.close()
 
 
-def create_dataset_sub_images(h5_path, output_path, N_VALIDATION, N_VERIFICATION, N_RANDOM_SUB_IMAGES, CROP_SIZE, UNET_model_options=None):
+def create_dataset_sub_images(
+    h5_path,
+    output_path,
+    N_VALIDATION,
+    N_VERIFICATION,
+    N_RANDOM_SUB_IMAGES,
+    CROP_SIZE,
+    UNET_model_options=None,
+):
 
     if UNET_model_options:
-        UNET_model = keras.models.load_model(UNET_model_options['keras_file'], compile=False)
-        window_size = UNET_model_options['window_size']
-        sub_image_size = UNET_model_options['sub_image_size']
-        stride_division = UNET_model_options['stride_division']
+        UNET_model = keras.models.load_model(
+            UNET_model_options["keras_file"], compile=False
+        )
+        window_size = UNET_model_options["window_size"]
+        sub_image_size = UNET_model_options["sub_image_size"]
+        stride_division = UNET_model_options["stride_division"]
 
     dataset_path = Path(output_path, "Output")
 
@@ -115,25 +125,32 @@ def create_dataset_sub_images(h5_path, output_path, N_VALIDATION, N_VERIFICATION
                 "\n"
             )
 
-
-
             original_img = h5_dataset[image_file]["img"][...]
             marked_img = original_img.copy()
 
             if UNET_model_options:
                 subdivided_image_raw = divide_image(
-                    window_size, sub_image_size, original_img[:,:,0], stride_division
+                    window_size, sub_image_size, original_img[:, :, 0], stride_division
                 )
 
-                subdivided_image_UNET = apply_UNET_mask(subdivided_image_raw, UNET_model)
+                subdivided_image_UNET = apply_UNET_mask(
+                    subdivided_image_raw, UNET_model
+                )
                 img_UNET = recreate_UNET_image(
-                    subdivided_image_UNET, window_size, original_img[:,:,0], stride_division
+                    subdivided_image_UNET,
+                    window_size,
+                    original_img[:, :, 0],
+                    stride_division,
                 )
                 marked_img_UNET = cv2.cvtColor(img_UNET.copy(), cv2.COLOR_GRAY2BGR)
 
-
-
-            for n_square in tqdm(range(N_RANDOM_SUB_IMAGES), desc=f"Cropping image {index+1}/{N_images}", ncols=80, ascii=True, leave=True):
+            for n_square in tqdm(
+                range(N_RANDOM_SUB_IMAGES),
+                desc=f"Cropping image {index+1}/{N_images}",
+                ncols=80,
+                ascii=True,
+                leave=True,
+            ):
 
                 output = []
 
@@ -148,25 +165,28 @@ def create_dataset_sub_images(h5_path, output_path, N_VALIDATION, N_VERIFICATION
 
                 img_width = original_img.shape[1]
                 img_height = original_img.shape[0]
-                square_size = (CROP_SIZE,  CROP_SIZE)
+                square_size = (CROP_SIZE, CROP_SIZE)
 
-                x_center_random = random.randint(square_size[0] // 2, img_width - square_size[0] // 2)
-                y_center_random = random.randint(square_size[0] // 2, img_height - square_size[0] // 2)
+                x_center_random = random.randint(
+                    square_size[0] // 2, img_width - square_size[0] // 2
+                )
+                y_center_random = random.randint(
+                    square_size[0] // 2, img_height - square_size[0] // 2
+                )
 
                 x0_crop = x_center_random - square_size[0] // 2
                 x1_crop = x_center_random + square_size[0] // 2
                 y0_crop = y_center_random - square_size[0] // 2
                 y1_crop = y_center_random + square_size[0] // 2
 
-                original_img_cropped = original_img[y0_crop:y1_crop,
-                                                    x0_crop:x1_crop]
+                original_img_cropped = original_img[y0_crop:y1_crop, x0_crop:x1_crop]
 
                 if UNET_model_options:
-                    UNET_img_cropped = img_UNET[y0_crop:y1_crop,
-                                                        x0_crop:x1_crop]
+                    UNET_img_cropped = img_UNET[y0_crop:y1_crop, x0_crop:x1_crop]
 
-                    marked_img_UNET_cropped = marked_img_UNET[y0_crop:y1_crop,
-                                                        x0_crop:x1_crop]
+                    marked_img_UNET_cropped = marked_img_UNET[
+                        y0_crop:y1_crop, x0_crop:x1_crop
+                    ]
 
                 original_img_cropped = np.array(original_img_cropped, dtype=np.uint8)
                 marked_img_original = original_img.copy()
@@ -181,8 +201,7 @@ def create_dataset_sub_images(h5_path, output_path, N_VALIDATION, N_VERIFICATION
 
                     for point in contour:
                         x, y = point[0]
-                        if not (x0_crop <= x <= x1_crop and
-                                y0_crop <= y <= y1_crop):
+                        if not (x0_crop <= x <= x1_crop and y0_crop <= y <= y1_crop):
                             contour_inside_region = False
 
                     if contour_inside_region:
@@ -209,16 +228,20 @@ def create_dataset_sub_images(h5_path, output_path, N_VALIDATION, N_VERIFICATION
                             2,
                         )
 
-                        bbox_x, bbox_y, bbox_width, bbox_height = cv2.boundingRect(contour[...])
+                        bbox_x, bbox_y, bbox_width, bbox_height = cv2.boundingRect(
+                            contour[...]
+                        )
 
                         bbox_x_translated = bbox_x - x0_crop
                         bbox_y_translated = bbox_y - y0_crop
 
-                        marked_img_cropped= cv2.rectangle(
+                        marked_img_cropped = cv2.rectangle(
                             marked_img_cropped,
                             (bbox_x_translated, bbox_y_translated),
-                            (bbox_x_translated + bbox_width,
-                             bbox_y_translated + bbox_height),
+                            (
+                                bbox_x_translated + bbox_width,
+                                bbox_y_translated + bbox_height,
+                            ),
                             (0, 255, 0),
                             1,
                         )
@@ -239,8 +262,10 @@ def create_dataset_sub_images(h5_path, output_path, N_VALIDATION, N_VERIFICATION
                             marked_img_UNET_cropped = cv2.rectangle(
                                 marked_img_UNET_cropped,
                                 (bbox_x_translated, bbox_y_translated),
-                                (bbox_x_translated + bbox_width,
-                                 bbox_y_translated + bbox_height),
+                                (
+                                    bbox_x_translated + bbox_width,
+                                    bbox_y_translated + bbox_height,
+                                ),
                                 (0, 255, 0),
                                 1,
                             )
@@ -257,13 +282,24 @@ def create_dataset_sub_images(h5_path, output_path, N_VALIDATION, N_VERIFICATION
                         )
                 if not total_contours_inside_region > 5:
                     continue
-                cv2.imwrite(str(Path(DEBUG_FOLDER, f"{debug_image_filename}")), marked_img_cropped)
-                cv2.imwrite(str(Path(IMAGES_FOLDER, f"{raw_image_filename}")), original_img_cropped)
+                cv2.imwrite(
+                    str(Path(DEBUG_FOLDER, f"{debug_image_filename}")),
+                    marked_img_cropped,
+                )
+                cv2.imwrite(
+                    str(Path(IMAGES_FOLDER, f"{raw_image_filename}")),
+                    original_img_cropped,
+                )
 
                 if UNET_model_options:
-                    cv2.imwrite(str(Path(MASKS_FOLDER, f"{raw_image_filename}")), UNET_img_cropped)
-                    cv2.imwrite(str(Path(DEBUG_FOLDER, f"{debug_image_filename}")),
-                                np.hstack((marked_img_cropped, marked_img_UNET_cropped)))
+                    cv2.imwrite(
+                        str(Path(MASKS_FOLDER, f"{raw_image_filename}")),
+                        UNET_img_cropped,
+                    )
+                    cv2.imwrite(
+                        str(Path(DEBUG_FOLDER, f"{debug_image_filename}")),
+                        np.hstack((marked_img_cropped, marked_img_UNET_cropped)),
+                    )
 
                 with open(
                     Path(CONTOURS_FOLDER, f"{cnt_list_filename}"), "a", encoding="utf-8"
