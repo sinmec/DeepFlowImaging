@@ -34,7 +34,7 @@ filepath = Path(f"{Path(best_model_name).stem}_CONFIG.h5")
 save_model_configuration(filepath, N_SUB, ANCHOR_SIZES)
 
 dataset_folder = Path(
-    "/home/rafaelfc/Data/DATASETS/example_dataset_FRCNN_PIV_subimage/Output"
+    "../../examples/example_dataset_FRCNN_PIV_subimage/Output"
 )
 images_train, bbox_datasets_train, _ = read_dataset(
     img_size, dataset_folder, subset="Training"

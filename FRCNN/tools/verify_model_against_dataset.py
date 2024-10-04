@@ -16,10 +16,10 @@ from create_anchors import create_anchors
 from return_bbox_from_model import return_bbox_from_model
 
 model_file = Path(
-    "/home/rafaelfc/PycharmProjects/DeepFlowImaging/FRCNN/training/simple/best_fRCNN_mask_16.keras"
+    "../training/simple/best_fRCNN_mask_16.keras"
 )
 model_config_file = Path(
-    "/home/rafaelfc/PycharmProjects/DeepFlowImaging/FRCNN/training/simple/best_fRCNN_mask_16_CONFIG.h5"
+    "../training/simple/best_fRCNN_mask_16_CONFIG.h5"
 )
 
 model = keras.models.load_model(model_file, compile=False)
