@@ -8,7 +8,6 @@ from keras.layers import Input, Conv2D, MaxPooling2D
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.utils import plot_model
-import sys
 import config as cfg
 from input_generator import input_generator
 from losses import loss_cls, loss_reg
@@ -43,9 +42,13 @@ dataset_folder = Path(
 images_train, bbox_datasets_train, _ = read_dataset(
     img_size, dataset_folder, subset="Training"
 )
-images_val, bbox_datasets_val, raw_val_images = read_dataset(
+images_val, bbox_datasets_val, _ = read_dataset(
     img_size, dataset_folder, subset="Validation"
 )
+images_verification, bbox_datasets_verification, images_raw_verification = read_dataset(
+    img_size, dataset_folder, subset="Verification"
+)
+
 
 input_image = Input(shape=(img_size[0], img_size[1], 1))
 conv_3_3_1 = Conv2D(
@@ -133,99 +136,98 @@ class TrackProgress(Callback):
         self.out_folder.mkdir(parents=True, exist_ok=True)
 
     def on_epoch_end(self, epoch, logs=None):
-        if epoch % 10 == 0:
-            anchors, index_anchors_valid = create_anchors(
-                img_size, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES
+        if not epoch % 10 == 0:
+            return
+        anchors, index_anchors_valid = create_anchors(
+            img_size, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES
+        )
+
+        _images = images_verification[::16].copy()
+        _images_raw = images_raw_verification[::16].copy()
+        _bboxes = bbox_datasets_verification[::16]
+        n_tests = _images.shape[0]
+        RPN_top_samples = 100000
+
+        for k in range(n_tests):
+            img_out = _images[k].copy() * 255.0
+            img_out = img_out.astype(np.uint8)
+            img_mask_rgb = cv2.cvtColor(img_out, cv2.COLOR_GRAY2BGR)
+
+            img_raw_rgb = _images_raw[k].copy() * 255.0
+            img_raw_rgb = img_raw_rgb.astype(np.uint8)
+            img_raw_rgb = cv2.cvtColor(img_raw_rgb, cv2.COLOR_GRAY2BGR)
+
+            bbox_dataset = _bboxes[k]
+            for _bbox in enumerate(bbox_dataset):
+                bbox = _bbox[1]
+                x_b_1 = int(bbox[0] - (bbox[2] / 2))
+                y_b_1 = int(bbox[1] - (bbox[3] / 2))
+                x_b_2 = int(bbox[0] + (bbox[2] / 2))
+                y_b_2 = int(bbox[1] + (bbox[3] / 2))
+                p_1 = (x_b_1, y_b_1)
+                p_2 = (x_b_2, y_b_2)
+                cv2.rectangle(img_raw_rgb, p_1, p_2, (0, 255, 0), 2)
+                cv2.rectangle(img_mask_rgb, p_1, p_2, (0, 255, 0), 2)
+
+            img = np.zeros((1, img_size[0], img_size[1], 1), dtype=np.float64)
+            img[0, :, :, 0] = _images[k]
+
+            inference = model.predict(img)
+            bbox_pred = inference[0]
+            labels_pred = inference[1]
+
+            labels_pred_rav = np.ravel(labels_pred)
+            bbox_pred_rav = np.ravel(bbox_pred)
+
+            labels_pred_rav_argsort = np.argsort(labels_pred_rav)
+            labels_pred_rav_argsort = labels_pred_rav_argsort[-RPN_top_samples:]
+            labels_top = labels_pred_rav[labels_pred_rav_argsort]
+
+            bboxes = []
+            scores = []
+            for m in range(len(labels_top)):
+                k_A = labels_pred_rav_argsort[m]
+
+                label_A = labels_pred_rav[k_A]
+
+                BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav)
+
+                bboxes.append(BBOX_A)
+                scores.append(float(label_A))
+
+            nms_indexes = cv2.dnn.NMSBoxes(bboxes, scores, 0.9, 0.1)
+
+            bboxes = []
+            for index in nms_indexes:
+                k_A = labels_pred_rav_argsort[index]
+                BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav)
+
+                x_1 = BBOX_A[0]
+                y_1 = BBOX_A[1]
+                x_2 = BBOX_A[0] + BBOX_A[2]
+                y_2 = BBOX_A[1] + BBOX_A[3]
+
+                x_r = 1.0
+                y_r = 1.0
+                x_1 = int(x_1 / x_r)
+                y_1 = int(y_1 / y_r)
+                x_2 = int(x_2 / x_r)
+                y_2 = int(y_2 / y_r)
+
+                x_1 = max(x_1, 0)
+                y_1 = max(y_1, 0)
+                x_2 = min(x_2, img_size[1])
+                y_2 = min(y_2, img_size[0])
+
+                cv2.rectangle(img_raw_rgb, (x_1, y_1), (x_2, y_2), (255, 0, 255), 2)
+                cv2.rectangle(img_mask_rgb, (x_1, y_1), (x_2, y_2), (255, 0, 255), 2)
+
+                bboxes.append((x_1, y_1, x_2, y_2))
+
+            cv2.imwrite(
+                str(self.out_folder / f"progress_img_ex_{k:03d}_{epoch:05d}.jpg"),
+                np.hstack((img_raw_rgb, img_mask_rgb)),
             )
-
-            _images = raw_val_images[::16].copy()
-            _bboxes = bbox_datasets_val[::16]
-            n_tests = _images.shape[0]
-            RPN_top_samples = 100000
-
-            print(f"NUMERO DE IMAGENS {n_tests}")
-
-            for k in range(n_tests):
-                img_out = _images[k].copy() * 255.0
-                img_out = img_out.astype(np.uint8)
-                img_mask_rgb = cv2.cvtColor(img_out, cv2.COLOR_GRAY2BGR)
-
-                img_raw_rgb = _images[k].copy() * 255.0
-                img_raw_rgb = img_raw_rgb.astype(np.uint8)
-                img_raw_rgb = cv2.cvtColor(img_raw_rgb, cv2.COLOR_GRAY2BGR)
-
-                bbox_dataset = _bboxes[k]
-                for _bbox in enumerate(bbox_dataset):
-                    bbox = _bbox[1]
-                    x_b_1 = int(bbox[0] - (bbox[2] / 2))
-                    y_b_1 = int(bbox[1] - (bbox[3] / 2))
-                    x_b_2 = int(bbox[0] + (bbox[2] / 2))
-                    y_b_2 = int(bbox[1] + (bbox[3] / 2))
-                    c_x = (x_b_1 + x_b_2) // 2
-                    c_y = (y_b_1 + y_b_2) // 2
-                    p_1 = (x_b_1, y_b_1)
-                    p_2 = (x_b_2, y_b_2)
-                    # cv2.rectangle(img_mask_rgb, p_1, p_2, (0, 255, 255), 2)
-                    cv2.rectangle(img_raw_rgb, p_1, p_2, (255, 0, 0), 2)
-
-                img = np.zeros((1, img_size[0], img_size[1], 1), dtype=np.float64)
-                img[0, :, :, 0] = _images[k]
-
-                inference = model.predict(img)
-                bbox_pred = inference[0]
-                labels_pred = inference[1]
-
-                labels_pred_rav = np.ravel(labels_pred)
-                bbox_pred_rav = np.ravel(bbox_pred)
-
-                labels_pred_rav_argsort = np.argsort(labels_pred_rav)
-                labels_pred_rav_argsort = labels_pred_rav_argsort[-RPN_top_samples:]
-                labels_top = labels_pred_rav[labels_pred_rav_argsort]
-
-                bboxes = []
-                scores = []
-                for m in range(len(labels_top)):
-                    k_A = labels_pred_rav_argsort[m]
-
-                    label_A = labels_pred_rav[k_A]
-
-                    BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav)
-
-                    bboxes.append(BBOX_A)
-                    scores.append(float(label_A))
-
-                nms_indexes = cv2.dnn.NMSBoxes(bboxes, scores, 0.9, 0.1)
-
-                bboxes = []
-                for index in nms_indexes:
-                    k_A = labels_pred_rav_argsort[index]
-                    BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav)
-
-                    x_1 = BBOX_A[0]
-                    y_1 = BBOX_A[1]
-                    x_2 = BBOX_A[0] + BBOX_A[2]
-                    y_2 = BBOX_A[1] + BBOX_A[3]
-
-                    x_r = 1.0
-                    y_r = 1.0
-                    x_1 = int(x_1 / x_r)
-                    y_1 = int(y_1 / y_r)
-                    x_2 = int(x_2 / x_r)
-                    y_2 = int(y_2 / y_r)
-
-                    x_1 = max(x_1, 0)
-                    y_1 = max(y_1, 0)
-                    x_2 = min(x_2, img_size[1])
-                    y_2 = min(y_2, img_size[0])
-
-                    cv2.rectangle(img_mask_rgb, (x_1, y_1), (x_2, y_2), (0, 0, 255), 2)
-
-                    bboxes.append((x_1, y_1, x_2, y_2))
-
-                cv2.imwrite(
-                    str(self.out_folder / f"progress_img_ex_{k:03d}_{epoch:05d}.jpg"),
-                    np.hstack((img_raw_rgb, img_mask_rgb)),
-                )
 
 
 model.fit(
