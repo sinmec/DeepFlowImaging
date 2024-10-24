@@ -69,10 +69,6 @@ if MODE == "mask":
 elif MODE == "raw":
     imgs = imgs[:, :, :, 1]
 
-# Only the test data, not used during training
-imgs = imgs[-cfg.N_TEST_DATA :]
-bbox_datasets = bbox_datasets[-cfg.N_TEST_DATA :]
-
 # Number of validation images
 N_imgs = imgs.shape[0]
 
