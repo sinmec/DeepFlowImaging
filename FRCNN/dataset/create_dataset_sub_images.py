@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 sys.path.append("../../UNET/")
 from prediction.apply_UNET_mask_split import apply_UNET_mask
+from prediction.apply_UNET_mask_split import apply_UNET_mask_raw
 from prediction.divide_image import divide_image
 from prediction.recreate_UNET_image import recreate_UNET_image
 
@@ -59,6 +60,11 @@ def create_dataset_sub_images(
     IMAGES_FULL_FOLDER_VAL = Path(dataset_path, "Validation", "images_full")
     IMAGES_FULL_FOLDER_VER = Path(dataset_path, "Verification", "images_full")
 
+    MASKS_FULL_FOLDER_TRAIN = Path(dataset_path, "Training", "masks_full")
+    MASKS_FULL_FOLDER_VAL = Path(dataset_path, "Validation", "masks_full")
+    MASKS_FULL_FOLDER_VER = Path(dataset_path, "Verification", "masks_full")
+
+
     if UNET_model_options:
         MASKS_FOLDER_TRAIN = Path(dataset_path, "Training", "masks")
         MASKS_FOLDER_VAL = Path(dataset_path, "Validation", "masks")
@@ -83,6 +89,11 @@ def create_dataset_sub_images(
     IMAGES_FULL_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
     IMAGES_FULL_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
     IMAGES_FULL_FOLDER_VER.mkdir(parents=True, exist_ok=True)
+
+    MASKS_FULL_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
+    MASKS_FULL_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
+    MASKS_FULL_FOLDER_VER.mkdir(parents=True, exist_ok=True)
+
 
     h5_files = []
     for h5_file in os.listdir(h5_path):
@@ -113,6 +124,7 @@ def create_dataset_sub_images(
                 IMAGES_FULL_FOLDER = IMAGES_FULL_FOLDER_VAL
                 if UNET_model_options:
                     MASKS_FOLDER = MASKS_FOLDER_VAL
+                    MASKS_FULL_FOLDER = MASKS_FULL_FOLDER_VAL
             elif index in verification_indexes:
                 CONTOURS_FOLDER = CONTOURS_FOLDER_VER
                 IMAGES_FOLDER = IMAGES_FOLDER_VER
@@ -120,6 +132,7 @@ def create_dataset_sub_images(
                 IMAGES_FULL_FOLDER = IMAGES_FULL_FOLDER_VER
                 if UNET_model_options:
                     MASKS_FOLDER = MASKS_FOLDER_VER
+                    MASKS_FULL_FOLDER = MASKS_FULL_FOLDER_VER
             else:
                 CONTOURS_FOLDER = CONTOURS_FOLDER_TRAIN
                 IMAGES_FOLDER = IMAGES_FOLDER_TRAIN
@@ -127,6 +140,7 @@ def create_dataset_sub_images(
                 IMAGES_FULL_FOLDER = IMAGES_FULL_FOLDER_TRAIN
                 if UNET_model_options:
                     MASKS_FOLDER = MASKS_FOLDER_TRAIN
+                    MASKS_FULL_FOLDER = MASKS_FULL_FOLDER_TRAIN
 
             header = (
                 "image_name, "
@@ -144,9 +158,14 @@ def create_dataset_sub_images(
                     window_size, sub_image_size, original_img[:, :, 0], stride_division
                 )
 
+                image_raw = divide_image(
+                    window_size, window_size, original_img[:, :, 0], 1
+                )
+
                 subdivided_image_UNET = apply_UNET_mask(
                     subdivided_image_raw, UNET_model
                 )
+
                 img_UNET = recreate_UNET_image(
                     subdivided_image_UNET,
                     window_size,
@@ -312,9 +331,15 @@ def create_dataset_sub_images(
                         str(Path(MASKS_FOLDER, f"{raw_image_filename}")),
                         UNET_img_cropped,
                     )
+
                     cv2.imwrite(
                         str(Path(DEBUG_FOLDER, f"{debug_image_filename}")),
                         np.hstack((marked_img_cropped, marked_img_UNET_cropped)),
+                    )
+
+                    cv2.imwrite(
+                        str(Path(MASKS_FULL_FOLDER, f"UNET_{original_image_filename}")),
+                        img_UNET,
                     )
 
                 with open(
