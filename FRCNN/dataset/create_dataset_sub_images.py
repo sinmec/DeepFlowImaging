@@ -11,7 +11,6 @@ from tqdm import tqdm
 
 sys.path.append("../../UNET/")
 from prediction.apply_UNET_mask_split import apply_UNET_mask
-from prediction.apply_UNET_mask_split import apply_UNET_mask_raw
 from prediction.divide_image import divide_image
 from prediction.recreate_UNET_image import recreate_UNET_image
 
