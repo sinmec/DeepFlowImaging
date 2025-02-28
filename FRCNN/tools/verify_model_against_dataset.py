@@ -9,6 +9,8 @@ import h5py as h5
 import numpy as np
 from tensorflow import keras
 
+from FRCNN.training.simple.return_bounding_box_points import return_bounding_box_points
+
 sys.path.append("../training/simple")
 
 from read_dataset import read_dataset
@@ -16,11 +18,15 @@ from create_anchors import create_anchors
 from return_bbox_from_model import return_bbox_from_model
 
 model_file = Path(
-    "../training/simple/best_fRCNN_mask_16.keras"
+    # "../training/simple/best_fRCNN_mask_16.keras"
+    "../training/simple/best_fRCNN_raw_08.keras"
 )
 model_config_file = Path(
-    "../training/simple/best_fRCNN_mask_16_CONFIG.h5"
+    # "../training/simple/best_fRCNN_mask_16_CONFIG.h5"
+    "../training/simple/best_fRCNN_raw_08_CONFIG.h5"
 )
+
+out_folder_name = "examples_TEST_2025"
 
 model = keras.models.load_model(model_file, compile=False)
 
@@ -33,26 +39,28 @@ IMG_SIZE = h5_model.attrs["IMG_SIZE"]
 MODE = h5_model.attrs["MODE"]
 POS_IOU_THRESHOLD = h5_model.attrs["POS_IOU_THRESHOLD"]
 NEG_IOU_THRESHOLD = h5_model.attrs["NEG_IOU_THRESHOLD"]
+INPUT_FOLDER = h5_model.attrs["INPUT_FOLDER"]
 h5_model.close()
 
-out_folder = Path("examples_TEST")
+out_folder = Path(out_folder_name)
 out_folder.mkdir(exist_ok=True)
 
-img_size = IMG_SIZE
+RPN_TOP_SAMPLES = 100000
 
-RPN_top_samples = 100000
+dataset_folder = Path(INPUT_FOLDER)
+imgs_mask, bbox_datasets, imgs_raw = read_dataset(
+    IMG_SIZE, dataset_folder, subset="Verification"
+)
 
-dataset_folder = Path(
-    "/home/rafaelfc/Data/DATASETS/example_dataset_FRCNN_PIV_subimage/Output"
-)
-imgs, bbox_datasets, img_raws = read_dataset(
-    img_size, dataset_folder, subset="Verification"
-)
+if MODE == "raw":
+    imgs = imgs_raw
+elif MODE == "mask":
+    imgs = imgs_mask
 
 N_imgs = imgs.shape[0]
 
 anchors, index_anchors_valid = create_anchors(
-    img_size, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES
+    IMG_SIZE, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES
 )
 
 for k in range(N_imgs):
@@ -60,25 +68,18 @@ for k in range(N_imgs):
     img_out = imgs[k] * 255.0
     img_out = img_out.astype(np.uint8)
     img_mask_rgb = cv2.cvtColor(img_out, cv2.COLOR_GRAY2BGR)
-    img_raw_rgb = img_raws[k] * 255.0
+    img_raw_rgb = imgs_raw[k] * 255.0
     img_raw_rgb = img_raw_rgb.astype(np.uint8)
     img_raw_rgb = cv2.cvtColor(img_raw_rgb, cv2.COLOR_GRAY2BGR)
 
     bbox_dataset = bbox_datasets[k]
     for _bbox in enumerate(bbox_dataset):
         bbox = _bbox[1]
-        x_b_1 = int(bbox[0] - (bbox[2] / 2))
-        y_b_1 = int(bbox[1] - (bbox[3] / 2))
-        x_b_2 = int(bbox[0] + (bbox[2] / 2))
-        y_b_2 = int(bbox[1] + (bbox[3] / 2))
-        c_x = (x_b_1 + x_b_2) // 2
-        c_y = (y_b_1 + y_b_2) // 2
-        p_1 = (x_b_1, y_b_1)
-        p_2 = (x_b_2, y_b_2)
+        p_1, p_2 = return_bounding_box_points(bbox)
         cv2.rectangle(img_mask_rgb, p_1, p_2, (0, 255, 255), 2)
         cv2.rectangle(img_raw_rgb, p_1, p_2, (0, 255, 255), 2)
 
-    img = np.zeros((1, img_size[0], img_size[1], 1), dtype=np.float64)
+    img = np.zeros((1, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=np.float64)
     img[0, :, :, 0] = imgs[k]
 
     inference = model.predict(img)
@@ -89,7 +90,7 @@ for k in range(N_imgs):
     bbox_pred_rav = np.ravel(bbox_pred)
 
     labels_pred_rav_argsort = np.argsort(labels_pred_rav)
-    labels_pred_rav_argsort = labels_pred_rav_argsort[-RPN_top_samples:]
+    labels_pred_rav_argsort = labels_pred_rav_argsort[-RPN_TOP_SAMPLES:]
     labels_top = labels_pred_rav[labels_pred_rav_argsort]
 
     bboxes = []
@@ -127,8 +128,8 @@ for k in range(N_imgs):
 
         x_1 = max(x_1, 0)
         y_1 = max(y_1, 0)
-        x_2 = min(x_2, img_size[1])
-        y_2 = min(y_2, img_size[0])
+        x_2 = min(x_2, IMG_SIZE[1])
+        y_2 = min(y_2, IMG_SIZE[0])
 
         cv2.rectangle(img_mask_rgb, (x_1, y_1), (x_2, y_2), (000, 255, 000), 2)
         cv2.rectangle(img_raw_rgb, (x_1, y_1), (x_2, y_2), (000, 255, 000), 2)

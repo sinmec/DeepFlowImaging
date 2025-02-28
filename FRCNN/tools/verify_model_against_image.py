@@ -9,17 +9,19 @@ from tensorflow import keras
 sys.path.append("../training/simple")
 
 from divide_image import divide_image
-from recreate_image import recreate_image
 from create_anchors import create_anchors
 from FRCNN.training.simple.return_bbox_from_model import return_bbox_from_model
 
-model_file = Path(
-    "../training/simple/best_fRCNN_mask_16.keras"
-)
+RPN_TOP_SAMPLES = 100000
+SCORE_THRESHOLD = 0.9
+NMS_THRESHOLD = 0.1
 
-model_config_file = Path(
-    "../training/simple/best_fRCNN_mask_16_CONFIG.h5"
-)
+
+model_file = Path("../training/simple/best_fRCNN_raw_08.keras")
+
+model_config_file = Path("../training/simple/best_fRCNN_raw_08_CONFIG.h5")
+
+out_folder_name = "examples_TEST_2025_FULL"
 
 model = keras.models.load_model(model_file, compile=False)
 
@@ -28,26 +30,25 @@ with h5.File(model_config_file, "r") as h5_model:
     ANCHOR_SIZES = h5_model.attrs["ANCHOR_SIZES"]
     ANCHOR_RATIOS = h5_model.attrs["ANCHOR_RATIOS"]
     IMG_SIZE = h5_model.attrs["IMG_SIZE"]
+    MODE = h5_model.attrs["MODE"]
     POS_IOU_THRESHOLD = h5_model.attrs["POS_IOU_THRESHOLD"]
     NEG_IOU_THRESHOLD = h5_model.attrs["NEG_IOU_THRESHOLD"]
+    INPUT_FOLDER = h5_model.attrs["INPUT_FOLDER"]
 
-out_folder = Path("examples_TEST_full_image")
+out_folder = Path(out_folder_name)
 out_folder.mkdir(exist_ok=True)
 
-img_size = IMG_SIZE
-
-RPN_top_samples = 100000
-
 anchors, index_anchors_valid = create_anchors(
-    img_size, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES
+    IMG_SIZE, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES
 )
 
-# Folder where the test images are stored
-raw_images_dir = Path(
-    "/home/higorem/DeepFlowImaging/FRCNN/examples/example_dataset_FRCNN_PIV_subimage_TEST/Output/Validation/images_full")
+raw_images_dir = Path(INPUT_FOLDER, "Validation/images_full")
 
-mask_images_dir = Path(
-    "/home/higorem/DeepFlowImaging/FRCNN/examples/example_dataset_FRCNN_PIV_subimage_TEST/Output/Validation/masks_full")
+if MODE == "mask":
+    mask_images_dir = Path(INPUT_FOLDER, "Validation/masks_full")
+elif MODE == "raw":
+    mask_images_dir = raw_images_dir
+
 
 test_raw_files = os.listdir(raw_images_dir)
 test_masks_files = os.listdir(mask_images_dir)
@@ -67,35 +68,37 @@ for img in test_masks_files:
 N_imgs = len(test_raw_imgs)
 
 anchors, index_anchors_valid = create_anchors(
-    img_size, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES
+    IMG_SIZE, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES
 )
 
 for img_file in test_raw_files:
-    img_raw_file = cv2.imread(os.path.join(raw_images_dir, img_file), 0)
-    img_mask_file = cv2.imread(os.path.join(mask_images_dir, f"UNET_{img_file}"), 0)
+    img_raw = cv2.imread(os.path.join(raw_images_dir, img_file), 0)
+    img_mask = cv2.imread(os.path.join(mask_images_dir, img_file), 0)
 
     cropped_raw_imgs = []
     cropped_mask_imgs = []
 
-    subdivide_images_mask = divide_image(img_mask_file, 512)
-    subdivide_images_raw = divide_image(img_raw_file, 512)
+    if MODE == "mask":
 
-    pos_sub_imgs_mask = subdivide_images_mask[1]
-    sub_imgs_mask = subdivide_images_mask[0]
-    pos_sub_imgs_raw = subdivide_images_raw[1]
-    sub_imgs_raw = subdivide_images_raw[0]
+        subdivided_imgs, positions = divide_image(
+            img_mask, IMG_SIZE[0], stride_division=3
+        )
+    elif MODE == "raw":
+        subdivided_imgs, positions = divide_image(
+            img_raw, IMG_SIZE[0], stride_division=3
+        )
 
-    for k, subimg in enumerate(sub_imgs_mask):
-        img_out_raw = sub_imgs_raw[k] * 255.0
-        img_out_raw = img_out_raw.astype(np.uint8)
-        img_raw_rgb = cv2.cvtColor(img_out_raw, cv2.COLOR_GRAY2BGR)
+    bboxes = []
+    scores = []
+    for k, sub_img in enumerate(subdivided_imgs):
 
-        img_out_mask = sub_imgs_mask[k] * 255.0
-        img_out_mask = img_out_mask.astype(np.uint8)
-        img_mask_rgb = cv2.cvtColor(img_out_mask, cv2.COLOR_GRAY2BGR)
+        img = np.zeros((1, IMG_SIZE[0], IMG_SIZE[0], 1), dtype=np.float64)
+        img[0, :, :, 0] = sub_img.astype(np.float64) / 255.0
 
-        img = np.zeros((1, 512, 512, 1), dtype=np.float64)
-        img[0, :, :, 0] = subimg
+        _start_i = positions[k, 0]
+        _end_i = _start_i + IMG_SIZE[0]
+        _start_j = positions[k, 1]
+        _end_j = _start_j + IMG_SIZE[1]
 
         inference = model.predict(img)
 
@@ -106,57 +109,51 @@ for img_file in test_raw_files:
         bbox_pred_rav = np.ravel(bbox_pred)
 
         labels_pred_rav_argsort = np.argsort(labels_pred_rav)
-        labels_pred_rav_argsort = labels_pred_rav_argsort[-RPN_top_samples:]
+        labels_pred_rav_argsort = labels_pred_rav_argsort[-RPN_TOP_SAMPLES:]
         labels_top = labels_pred_rav[labels_pred_rav_argsort]
 
-        bboxes = []
-        scores = []
         for m in range(len(labels_top)):
             k_A = labels_pred_rav_argsort[m]
-
             label_A = labels_pred_rav[k_A]
 
             BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav)
 
+            if BBOX_A[0] < 2:
+                continue
+            if BBOX_A[1] < 2:
+                continue
+            if BBOX_A[0] + BBOX_A[2] > IMG_SIZE[0] - 2:
+                continue
+            if BBOX_A[1] + BBOX_A[3] > IMG_SIZE[0] - 2:
+                continue
+
+            BBOX_A[0] += _start_j
+            BBOX_A[1] += _start_i
             bboxes.append(BBOX_A)
             scores.append(float(label_A))
 
-        print(np.nanmin(scores), np.nanmax(scores))
+    nms_indexes = cv2.dnn.NMSBoxes(bboxes, scores, SCORE_THRESHOLD, NMS_THRESHOLD)
 
-        nms_indexes = cv2.dnn.NMSBoxes(bboxes, scores, 0.9, 0.1)
+    img_raw_rgb = cv2.cvtColor(img_raw, cv2.COLOR_GRAY2BGR)
+    img_mask_rgb = cv2.cvtColor(img_mask, cv2.COLOR_GRAY2BGR)
+    full_image_size = (img_mask_rgb.shape[0], img_mask_rgb.shape[1])
+    for nms in nms_indexes:
+        _bbox = bboxes[nms]
 
-        bboxes = []
-        for nms in nms_indexes:
-            k_A = labels_pred_rav_argsort[nms]
-            BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav)
+        x_1 = _bbox[0]
+        y_1 = _bbox[1]
+        x_2 = _bbox[0] + _bbox[2]
+        y_2 = _bbox[1] + _bbox[3]
 
-            x_1 = BBOX_A[0]
-            y_1 = BBOX_A[1]
-            x_2 = BBOX_A[0] + BBOX_A[2]
-            y_2 = BBOX_A[1] + BBOX_A[3]
+        x_1 = max(x_1, 0)
+        y_1 = max(y_1, 0)
+        x_2 = min(x_2, full_image_size[1])
+        y_2 = min(y_2, full_image_size[0])
 
-            x_r = 1.0
-            y_r = 1.0
-            x_1 = int(x_1 / x_r)
-            y_1 = int(y_1 / y_r)
-            x_2 = int(x_2 / x_r)
-            y_2 = int(y_2 / y_r)
+        cv2.rectangle(img_raw_rgb, (x_1, y_1), (x_2, y_2), (000, 255, 000), 2)
+        cv2.rectangle(img_mask_rgb, (x_1, y_1), (x_2, y_2), (000, 255, 000), 2)
 
-            x_1 = max(x_1, 0)
-            y_1 = max(y_1, 0)
-            x_2 = min(x_2, img_size[1])
-            y_2 = min(y_2, img_size[0])
-
-            cv2.rectangle(img_raw_rgb, (x_1, y_1), (x_2, y_2), (000, 255, 000), 2)
-            cv2.rectangle(img_mask_rgb, (x_1, y_1), (x_2, y_2), (000, 255, 000), 2)
-            bboxes.append((x_1, y_1, x_2, y_2))
-
-        cropped_raw_imgs.append(img_raw_rgb)
-        cropped_mask_imgs.append(img_mask_rgb)
-
-    raw_img = recreate_image(cropped_raw_imgs, test_raw_imgs[0].shape, pos_sub_imgs_raw)
-    mask_img = recreate_image(cropped_mask_imgs, test_raw_imgs[0].shape, pos_sub_imgs_raw)
-
-    img_out = np.hstack((raw_img, mask_img))
-
-    cv2.imwrite(os.path.join(out_folder, f"FULL_{Path(img_file).stem}.jpg"), img_out)
+    cv2.imwrite(
+        os.path.join(out_folder, f"{Path(img_file).stem}.jpg"),
+        np.hstack((img_raw_rgb, img_mask_rgb)),
+    )

@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def recreate_image(imgs, original_size, pos):
     recreated_img = np.zeros([original_size[0], original_size[1], 3], dtype=np.uint8)
 

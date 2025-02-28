@@ -1,25 +1,36 @@
+import cv2
 import numpy as np
 import math
 
-def divide_image(img, resized_img_size):
-    h, w = img.shape[:2]
 
-    columns = math.ceil(w / resized_img_size)
-    lines = math.ceil(h / resized_img_size)
+def divide_image(raw_img, window_size, stride_division=2):
+    scan_I = np.arange(
+        0, raw_img.shape[0] - window_size + 1, window_size // stride_division
+    )
+    scan_J = np.arange(
+        0, raw_img.shape[1] - window_size + 1, window_size // stride_division
+    )
 
-    x = np.linspace(resized_img_size / 2, w - resized_img_size / 2, num=columns)
-    y = np.linspace(resized_img_size / 2, h - resized_img_size / 2, num=lines)
+    raw_img_subdivided = np.zeros(
+        (scan_I.shape[0] * scan_J.shape[0], window_size, window_size),
+        dtype=np.float64,
+    )
 
-    subdivided_images = []
-    pos = []
+    positions = np.zeros((scan_I.shape[0] * scan_J.shape[0], 2), dtype=int)
+    index = 0
+    for i in scan_I:
+        for j in scan_J:
+            i_start = i
+            i_end = i + window_size
+            j_start = j
+            j_end = j + window_size
 
-    for i in x:
-        for j in y:
-            x1, x2 = int(i - resized_img_size / 2), int(i + resized_img_size / 2)
-            y1, y2 = int(j - resized_img_size / 2), int(j + resized_img_size / 2)
+            window_image = raw_img[i_start:i_end, j_start:j_end]
+            window_image = cv2.resize(window_image, (window_size, window_size))
+            raw_img_subdivided[index, :, :] = window_image
 
-            crop = img[y1:y2, x1:x2] / 255.0
-            pos.append([y1, y2, x1, x2])
-            subdivided_images.append(crop)
+            positions[index, 0] = i_start
+            positions[index, 1] = j_start
 
-    return subdivided_images, pos
+            index += 1
+    return raw_img_subdivided, positions

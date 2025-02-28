@@ -1,4 +1,5 @@
 import numpy as np
+from return_bounding_box_points import return_bounding_box_points
 
 
 # @njit
@@ -20,11 +21,13 @@ def calculate_IoUs(bboxes_dataset, bboxes_predicted):
         # Looping over the bboxes from the dataset
         for j in range(len(bboxes_dataset)):
             bbox = bboxes_dataset[j]
-            # bbox = bbox[1]
-            x_d_1 = int(bbox[0] - (bbox[3] / 2))
-            y_d_1 = int(bbox[1] - (bbox[4] / 2))
-            x_d_2 = int(bbox[0] + (bbox[3] / 2))
-            y_d_2 = int(bbox[1] + (bbox[4] / 2))
+
+            p_1, p_2 = return_bounding_box_points(bbox)
+            # TODO: FIXIT!
+            x_d_1 = p_1[0]
+            y_d_1 = p_1[1]
+            x_d_2 = p_2[0]
+            y_d_2 = p_2[1]
             bbox_dset_area = (x_d_2 - x_d_1) * (y_d_2 - y_d_1)
 
             # Finding intersection points
