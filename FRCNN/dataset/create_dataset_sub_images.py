@@ -337,7 +337,7 @@ def create_dataset_sub_images(
                     )
 
                     cv2.imwrite(
-                        str(Path(MASKS_FULL_FOLDER, f"UNET_{original_image_filename}")),
+                        str(Path(MASKS_FULL_FOLDER, f"{original_image_filename}")),
                         img_UNET,
                     )
 

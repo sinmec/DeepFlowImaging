@@ -6,11 +6,14 @@ import numpy as np
 import pandas as pd
 
 
-def read_dataset(img_size, dataset_folder, subset="Training"):
+def read_dataset(img_size, dataset_folder, mode='raw', subset="Training"):
 
     images_folder = Path(dataset_folder, subset, "images")
-    masks_folder = Path(dataset_folder, subset, "masks")
     txt_folder = Path(dataset_folder, subset, "contours")
+    masks_folder = images_folder
+    if mode=='mask':
+        masks_folder = Path(dataset_folder, subset, "masks")
+
 
     _imgs = os.listdir(masks_folder)
 
@@ -24,7 +27,7 @@ def read_dataset(img_size, dataset_folder, subset="Training"):
 
     # Reading the csv and image files
     bbox_datasets = []
-    imgs = np.zeros(
+    mask_imgs = np.zeros(
         (
             N_imgs,
             img_size[0],
@@ -50,7 +53,7 @@ def read_dataset(img_size, dataset_folder, subset="Training"):
         mask_img = cv2.imread(str(Path(masks_folder, mask_img_file)), 0)
         raw_img = cv2.imread(str(Path(images_folder, raw_img_file)), 0)
 
-        imgs[i, :, :] = mask_img / 255.0
+        mask_imgs[i, :, :] = mask_img / 255.0
         raw_imgs[i, :, :] = raw_img / 255.0
 
         # Reading the corresponding .txt file
@@ -99,4 +102,4 @@ def read_dataset(img_size, dataset_folder, subset="Training"):
             cv2.waitKey(0)
         i += 1
 
-    return imgs, bbox_datasets, raw_imgs
+    return mask_imgs, bbox_datasets, raw_imgs

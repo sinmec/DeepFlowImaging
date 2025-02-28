@@ -1,4 +1,6 @@
 import os
+import sys
+from pathlib import Path
 
 import cv2
 import h5py as h5
@@ -7,14 +9,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tensorflow import keras
 
-matplotlib.use("TkAgg")
+sys.path.append("../training/simple")
 
-# Essa eh uma gambi horrorosa!!!! Evite ao maximo fazer algo do tipo!!!
-import sys
+from return_bounding_box_points import return_bounding_box_points
 
-sys.path.append("..")
-
-import config as cfg
 from read_dataset import read_dataset
 from create_anchors import create_anchors
 from return_bbox_from_model import return_bbox_from_model
@@ -27,54 +25,47 @@ from calculate_IoUs import calculate_IoUs
 
 # Defining h5 model file
 # model_file = "../best_fRCNN_mask_16_100.0_04.h5"
-model_file = sys.argv[1]
+# model_file = sys.argv[1]
 
-# Loading the model
+model_file = Path("../training/simple/best_fRCNN_raw_08.keras")
+
+model_config_file = Path("../training/simple/best_fRCNN_raw_08_CONFIG.h5")
+
+out_folder_name = "examples_TEST_2025_FULL"
+
 model = keras.models.load_model(model_file, compile=False)
 
-# Loading the model as a regular hdf5/h5py file
-h5_model = h5.File(model_file, "r")
+with h5.File(model_config_file, "r") as h5_model:
+    N_SUB = h5_model.attrs["N_SUB"]
+    ANCHOR_SIZES = h5_model.attrs["ANCHOR_SIZES"]
+    ANCHOR_RATIOS = h5_model.attrs["ANCHOR_RATIOS"]
+    IMG_SIZE = h5_model.attrs["IMG_SIZE"]
+    MODE = h5_model.attrs["MODE"]
+    POS_IOU_THRESHOLD = h5_model.attrs["POS_IOU_THRESHOLD"]
+    NEG_IOU_THRESHOLD = h5_model.attrs["NEG_IOU_THRESHOLD"]
+    INPUT_FOLDER = h5_model.attrs["INPUT_FOLDER"]
 
-# Returning the anchor variables
-N_SUB = h5_model.attrs["N_SUB"]
-ANCHOR_SIZES = h5_model.attrs["ANCHOR_SIZES"]
-ANCHOR_RATIOS = h5_model.attrs["ANCHOR_RATIOS"]
-IMG_SIZE = h5_model.attrs["IMG_SIZE"]
-MODE = h5_model.attrs["MODE"]
-POS_IOU_THRESHOLD = h5_model.attrs["POS_IOU_THRESHOLD"]
-NEG_IOU_THRESHOLD = h5_model.attrs["NEG_IOU_THRESHOLD"]
-h5_model.close()
+out_folder = Path(out_folder_name, "metrics")
+out_folder.mkdir(exist_ok=True)
 
-# Creating an output folder to save the imgs
-model_name = os.path.basename(model_file).split(".h5")[0]
-out_folder = model_name + "_output"
-out_folder = os.path.join(out_folder, "metrics")
-if not os.path.exists(out_folder):
-    os.makedirs(out_folder)
-else:
-    exit()
+RPN_TOP_SAMPLES = 100000
+SCORE_THRESHOLD = 0.9
+NMS_THRESHOLD = 0.1
 
-# Loading image size from config file
-img_size = IMG_SIZE
+dataset_folder = Path(INPUT_FOLDER)
+imgs_mask, bbox_datasets, imgs_raw = read_dataset(
+    IMG_SIZE, dataset_folder, subset="Verification"
+)
 
-RPN_top_samples = 10000
+if MODE == "raw":
+    imgs = imgs_raw
+elif MODE == "mask":
+    imgs = imgs_mask
 
-# Defining the dataset folder
-dataset_folder = "dataset_fRCNN"
-imgs, bbox_datasets = read_dataset(img_size, dataset_folder)
-
-# Defining which image is used during training
-if MODE == "mask":
-    imgs = imgs[:, :, :, 0]
-elif MODE == "raw":
-    imgs = imgs[:, :, :, 1]
-
-# Number of validation images
 N_imgs = imgs.shape[0]
 
-# Creating the anchors
 anchors, index_anchors_valid = create_anchors(
-    img_size, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES
+    IMG_SIZE, N_SUB, ANCHOR_RATIOS, ANCHOR_SIZES
 )
 
 # Number of Ground-truths in each image
@@ -110,10 +101,15 @@ for n in range(len(IoU_thresh_s)):
         # Drawing bbox dataset
         for _bbox in enumerate(bbox_dataset):
             bbox = _bbox[1]
-            x_b_1 = int(bbox[0] - (bbox[3] / 2))
-            y_b_1 = int(bbox[1] - (bbox[4] / 2))
-            x_b_2 = int(bbox[0] + (bbox[3] / 2))
-            y_b_2 = int(bbox[1] + (bbox[4] / 2))
+            # x_b_1 = int(bbox[0] - (bbox[3] / 2))
+            # y_b_1 = int(bbox[1] - (bbox[4] / 2))
+            # x_b_2 = int(bbox[0] + (bbox[3] / 2))
+            # y_b_2 = int(bbox[1] + (bbox[4] / 2))
+            p_1, p_2 = return_bounding_box_points(bbox)
+            x_b_1 = p_1[0]
+            y_b_1 = p_1[1]
+            x_b_2 = p_2[0]
+            y_b_2 = p_2[1]
             c_x = (x_b_1 + x_b_2) // 2
             c_y = (y_b_1 + y_b_2) // 2
             p_1 = (x_b_1, y_b_1)
@@ -122,22 +118,21 @@ for n in range(len(IoU_thresh_s)):
             cv2.rectangle(img_mask_rgb, p_1, p_2, (0, 255, 255), 2)
 
         # Image in TF/Keras format
-        img = np.zeros((1, img_size[0], img_size[1], 1), dtype=np.float)
+        img = np.zeros((1, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=np.float)
         img[0, :, :, 0] = imgs[k]
 
-        # Infering the labels(Acc.) and bbox positions from the RPN/f-RCNN model
+        # Inferring the labels(Acc.) and bbox positions from the RPN/f-RCNN model
         inference = model.predict(img)
-        labels_pred = inference[0]  # labels - probability of being foreground (Acc.)
-        bbox_pred = inference[1]  # bbox leftmost and right most points
+        bbox_pred = (inference[0],)
+        labels_pred = inference[1]
 
         # Raveling/Flattening the two returned values
-        # TODO: I think that I ravel the output because it returns a multi-dimensional list.
         labels_pred_rav = np.ravel(labels_pred)
         bbox_pred_rav = np.ravel(bbox_pred)
 
         # Retrieving only the N top highest acc. boxes
         labels_pred_rav_argsort = np.argsort(labels_pred_rav)
-        labels_pred_rav_argsort = labels_pred_rav_argsort[-RPN_top_samples:]
+        labels_pred_rav_argsort = labels_pred_rav_argsort[-RPN_TOP_SAMPLES:]
         labels_top = labels_pred_rav[labels_pred_rav_argsort]
 
         # The model does not retun the bboxes ax (x1,x2,x3 and x4)
@@ -148,16 +143,11 @@ for n in range(len(IoU_thresh_s)):
         bboxes = []
         scores = []
         for m in range(len(labels_top)):
-            # k_A is the anchor index
             k_A = labels_pred_rav_argsort[m]
 
-            # label_A its score(acc.)
             label_A = labels_pred_rav[k_A]
 
-            # Returning the bounding boxes points in pixel dimensions
-            BBOX_A = return_bbox_from_model(
-                k_A, anchors, bbox_pred_rav, labels_pred_rav
-            )
+            BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav)
 
             # Updating the two lists to be used in the IOU OpenCV built-in implementation
             bboxes.append(BBOX_A)
@@ -170,7 +160,7 @@ for n in range(len(IoU_thresh_s)):
         # NMS means Non-Maximum supression.
         # The first value is the score threshold and the second is the NMS value
         # Those values work fine, but you may tune for your application
-        nms_indexes = cv2.dnn.NMSBoxes(bboxes, scores, 0.5, 0.1)
+        nms_indexes = cv2.dnn.NMSBoxes(bboxes, scores, SCORE_THRESHOLD, NMS_THRESHOLD)
         # nms_indexes = cv2.dnn.NMSBoxes(bboxes, scores, IoU_treshold, 0.1)
 
         # Now I loop around the nms_indexes to get the bounding boxes
@@ -179,17 +169,15 @@ for n in range(len(IoU_thresh_s)):
         # Retrieving the scores from the bboxes that survived the NMS
         scores_ALL = []
         for index in nms_indexes:
-            scores_ALL.append(scores[index[0]])
+            scores_ALL.append(scores[index])
 
         # print(scores_ALL)
         # exit()
 
         for index in nms_indexes:
             # Exaclty as in the previous loop...
-            k_A = labels_pred_rav_argsort[index[0]]
-            BBOX_A = return_bbox_from_model(
-                k_A, anchors, bbox_pred_rav, labels_pred_rav
-            )
+            k_A = labels_pred_rav_argsort[index]
+            BBOX_A = return_bbox_from_model(k_A, anchors, bbox_pred_rav)
 
             # Now I am modifying the bounding boxes, for the NMSBoxes functions, the bboxes
             # are not defined through their points..
@@ -209,8 +197,8 @@ for n in range(len(IoU_thresh_s)):
             # Limiting the values to avoid further problems
             x_1 = max(x_1, 0)
             y_1 = max(y_1, 0)
-            x_2 = min(x_2, img_size[1])
-            y_2 = min(y_2, img_size[0])
+            x_2 = min(x_2, IMG_SIZE[1])
+            y_2 = min(y_2, IMG_SIZE[0])
 
             # Appeding to the bboxes list, rectangles containing the bouding boxes
             bboxes.append((x_1, y_1, x_2, y_2))
@@ -333,7 +321,7 @@ for n in range(len(IoU_thresh_s)):
     # and finally retrieve our metric
     AP = np.sum(precision_s_11) / 11.0
 
-    print("OUT: %s, %.2f, %.3f" % (model_name, IoU_treshold, AP))
+    print(f"OUT: {model_file.stem}, {IoU_treshold:.2f}, {AP:.2f}")
 
     plt.plot(recall_s, precision_s, color="k")
     plt.plot(recall_s, precision_s_trapz, color="r")
@@ -349,7 +337,7 @@ for n in range(len(IoU_thresh_s)):
     mAPs.append(AP)
 
 
-print("OUT-final: %s, %.2f" % (model_name, np.mean(mAPs)))
+print(f"OUT-final: {model_file.stem} {np.mean(mAPs):.2f}")
 
 
 # DEBUG 3

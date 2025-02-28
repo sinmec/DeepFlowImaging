@@ -19,7 +19,7 @@ from return_bbox_from_model import return_bbox_from_model
 
 img_size = cfg.IMG_SIZE
 
-N_SUB = 16
+N_SUB = 8
 ANCHOR_SIZES = np.array(cfg.ANCHOR_REAL_SIZE) // N_SUB
 N_ANCHORS = len(ANCHOR_SIZES)
 N_RATIOS = len(cfg.ANCHOR_RATIOS)
@@ -37,16 +37,16 @@ filepath = Path(f"{Path(best_model_name).stem}_CONFIG.h5")
 save_model_configuration(filepath, N_SUB, ANCHOR_SIZES)
 
 dataset_folder = Path(
-    "../../examples/example_dataset_FRCNN_PIV_subimage/Output"
+    cfg.INPUT_FOLDER
 )
 images_train, bbox_datasets_train, _ = read_dataset(
-    img_size, dataset_folder, subset="Training"
+    img_size, dataset_folder, mode=cfg.MODE, subset="Training"
 )
 images_val, bbox_datasets_val, _ = read_dataset(
-    img_size, dataset_folder, subset="Validation"
+    img_size, dataset_folder, mode=cfg.MODE,  subset="Validation"
 )
 images_verification, bbox_datasets_verification, images_raw_verification = read_dataset(
-    img_size, dataset_folder, subset="Verification"
+    img_size, dataset_folder, mode=cfg.MODE,  subset="Verification"
 )
 
 
@@ -160,10 +160,10 @@ class TrackProgress(Callback):
             bbox_dataset = _bboxes[k]
             for _bbox in enumerate(bbox_dataset):
                 bbox = _bbox[1]
-                x_b_1 = int(bbox[0] - (bbox[2] / 2))
-                y_b_1 = int(bbox[1] - (bbox[3] / 2))
-                x_b_2 = int(bbox[0] + (bbox[2] / 2))
-                y_b_2 = int(bbox[1] + (bbox[3] / 2))
+                x_b_1 = int(bbox[0] - (bbox[3] / 2))
+                y_b_1 = int(bbox[1] - (bbox[2] / 2))
+                x_b_2 = int(bbox[0] + (bbox[3] / 2))
+                y_b_2 = int(bbox[1] + (bbox[2] / 2))
                 p_1 = (x_b_1, y_b_1)
                 p_2 = (x_b_2, y_b_2)
                 cv2.rectangle(img_raw_rgb, p_1, p_2, (0, 255, 0), 2)

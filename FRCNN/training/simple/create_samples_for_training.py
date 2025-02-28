@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 import config as cfg
+from FRCNN.training.simple.return_bounding_box_points import return_bounding_box_points
 
 
 def create_samples_for_training(
@@ -48,12 +49,11 @@ def create_samples_for_training(
 
     if debug:
         for k, bbox in enumerate(bbox_dataset):
-            x_b_1 = int(bbox[0] - (bbox[2] / 2))
-            y_b_1 = int(bbox[1] - (bbox[3] / 2))
-            x_b_2 = int(bbox[0] + (bbox[2] / 2))
-            y_b_2 = int(bbox[1] + (bbox[3] / 2))
-            p_1 = (x_b_1, y_b_1)
-            p_2 = (x_b_2, y_b_2)
+            # x_b_1 = int(bbox[0] - (bbox[3] / 2))
+            # y_b_1 = int(bbox[1] - (bbox[2] / 2))
+            # x_b_2 = int(bbox[0] + (bbox[3] / 2))
+            # y_b_2 = int(bbox[1] + (bbox[2] / 2))
+            p_1, p_2 = return_bounding_box_points(bbox)
             cv2.rectangle(image_rgb, p_1, p_2, (0, 255, 255), 4)
 
         for k in range(len(labels)):
