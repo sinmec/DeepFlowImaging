@@ -90,6 +90,12 @@ for img_file in test_raw_files:
 
     bboxes = []
     scores = []
+    N_imgs = subdivided_imgs.shape[0]
+    imgs = np.zeros((N_imgs, IMG_SIZE[0], IMG_SIZE[0], 1), dtype=np.float64)
+    imgs[:, :, :, 0] = subdivided_imgs.astype(np.float64) / 255.0
+
+    inferences = model.predict(imgs)
+
     for k, sub_img in enumerate(subdivided_imgs):
 
         img = np.zeros((1, IMG_SIZE[0], IMG_SIZE[0], 1), dtype=np.float64)
@@ -100,10 +106,8 @@ for img_file in test_raw_files:
         _start_j = positions[k, 1]
         _end_j = _start_j + IMG_SIZE[1]
 
-        inference = model.predict(img)
-
-        bbox_pred = inference[0]
-        labels_pred = inference[1]
+        bbox_pred = inferences[0][k]
+        labels_pred = inferences[1][k]
 
         labels_pred_rav = np.ravel(labels_pred)
         bbox_pred_rav = np.ravel(bbox_pred)
