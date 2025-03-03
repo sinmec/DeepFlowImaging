@@ -7,7 +7,7 @@ N_EPOCHS = 10000
 N_PATIENCE = 200
 RANDOM_SEED = 13
 
-IMG_SIZE = (256, 256) # Only square images are supported
+IMG_SIZE = (256, 256)  # Only square images are supported
 MODE = "raw"
 
 ANCHOR_REAL_SIZE = [8, 16, 32, 48, 64, 96]

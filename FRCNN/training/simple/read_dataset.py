@@ -6,14 +6,13 @@ import numpy as np
 import pandas as pd
 
 
-def read_dataset(img_size, dataset_folder, mode='raw', subset="Training"):
+def read_dataset(img_size, dataset_folder, mode="raw", subset="Training"):
 
     images_folder = Path(dataset_folder, subset, "images")
     txt_folder = Path(dataset_folder, subset, "contours")
     masks_folder = images_folder
-    if mode=='mask':
+    if mode == "mask":
         masks_folder = Path(dataset_folder, subset, "masks")
-
 
     _imgs = os.listdir(masks_folder)
 

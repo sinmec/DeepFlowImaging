@@ -4,7 +4,6 @@ from pathlib import Path
 
 import cv2
 import h5py as h5
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from tensorflow import keras

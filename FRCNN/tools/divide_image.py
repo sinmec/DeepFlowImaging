@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import math
 
 
 def divide_image(raw_img, window_size, stride_division=2):
