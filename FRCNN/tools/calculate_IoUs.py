@@ -23,7 +23,6 @@ def calculate_IoUs(bboxes_dataset, bboxes_predicted):
             bbox = bboxes_dataset[j]
 
             p_1, p_2 = return_bounding_box_points(bbox)
-            # TODO: FIXIT!
             x_d_1 = p_1[0]
             y_d_1 = p_1[1]
             x_d_2 = p_2[0]

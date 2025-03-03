@@ -63,7 +63,6 @@ def create_dataset_sub_images(
     MASKS_FULL_FOLDER_VAL = Path(dataset_path, "Validation", "masks_full")
     MASKS_FULL_FOLDER_VER = Path(dataset_path, "Verification", "masks_full")
 
-
     if UNET_model_options:
         MASKS_FOLDER_TRAIN = Path(dataset_path, "Training", "masks")
         MASKS_FOLDER_VAL = Path(dataset_path, "Validation", "masks")
@@ -92,7 +91,6 @@ def create_dataset_sub_images(
     MASKS_FULL_FOLDER_TRAIN.mkdir(parents=True, exist_ok=True)
     MASKS_FULL_FOLDER_VAL.mkdir(parents=True, exist_ok=True)
     MASKS_FULL_FOLDER_VER.mkdir(parents=True, exist_ok=True)
-
 
     h5_files = []
     for h5_file in os.listdir(h5_path):
