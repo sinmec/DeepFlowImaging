@@ -7,10 +7,7 @@ from FRCNN.training.simple.return_bounding_box_points import return_bounding_box
 
 def create_samples_for_training(
     anchors,
-    index_anchors_valid,
-    anchor_argmax_ious,
     labels,
-    ious,
     bbox_dataset,
     image,
     debug=False,

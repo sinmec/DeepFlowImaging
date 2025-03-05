@@ -9,16 +9,15 @@ from keras.optimizers import Adam
 from keras.utils import plot_model
 
 import config as cfg
-from FRCNN.training.keras_tuner.config import IMG_SIZE
 from callbacks import TrackProgress
 from input_generator import input_generator
 from losses import loss_cls, loss_reg
 from read_dataset import read_dataset
 from save_model_configuration import save_model_configuration
 
-img_size = cfg.IMG_SIZE
+IMG_SIZE = cfg.IMG_SIZE
 
-N_SUB = 8
+N_SUB = 16
 ANCHOR_SIZES = np.array(cfg.ANCHOR_REAL_SIZE) // N_SUB
 N_ANCHORS = len(ANCHOR_SIZES)
 N_RATIOS = len(cfg.ANCHOR_RATIOS)
@@ -37,17 +36,17 @@ save_model_configuration(filepath, N_SUB, ANCHOR_SIZES)
 
 dataset_folder = Path(cfg.INPUT_FOLDER)
 images_train, bbox_datasets_train, _ = read_dataset(
-    img_size, dataset_folder, mode=cfg.MODE, subset="Training"
+    IMG_SIZE, dataset_folder, mode=cfg.MODE, subset="Training"
 )
 images_val, bbox_datasets_val, _ = read_dataset(
-    img_size, dataset_folder, mode=cfg.MODE, subset="Validation"
+    IMG_SIZE, dataset_folder, mode=cfg.MODE, subset="Validation"
 )
 images_verification, bbox_datasets_verification, images_raw_verification = read_dataset(
-    img_size, dataset_folder, mode=cfg.MODE, subset="Verification"
+    IMG_SIZE, dataset_folder, mode=cfg.MODE, subset="Verification"
 )
 
 
-input_image = Input(shape=(img_size[0], img_size[1], 1))
+input_image = Input(shape=(IMG_SIZE[0], IMG_SIZE[1], 1))
 conv_3_3_1 = Conv2D(
     filters=cfg.N_FILTERS, kernel_size=cfg.KERNEL_SIZE, padding="same", name="3x3-1"
 )(input_image)
@@ -134,7 +133,6 @@ calllback_progress_inputs = {
     "images_verification": images_verification,
     "images_raw_verification": images_raw_verification,
     "bbox_datasets_verification": bbox_datasets_verification,
-    "model": model,
 }
 
 model.fit(
