@@ -65,10 +65,7 @@ def input_generator(imgs, bbox_datasets, model_options):
 
             anchor_labels = create_samples_for_training(
                 anchors,
-                index_anchors_valid,
-                anchor_argmax_ious,
                 labels,
-                ious,
                 bbox_dataset,
                 img,
                 debug=False,

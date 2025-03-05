@@ -10,8 +10,8 @@ RANDOM_SEED = 13
 IMG_SIZE = (256, 256)  # Only square images are supported
 MODE = "raw"
 
-ANCHOR_REAL_SIZE = [8, 16, 32, 48, 64, 96]
-# ANCHOR_REAL_SIZE = [16, 32, 48, 64, 96]
+# ANCHOR_REAL_SIZE = [8, 16, 32, 48, 64, 96]
+ANCHOR_REAL_SIZE = [16, 32, 48, 64, 96]
 # ANCHOR_REAL_SIZE = [32, 64, 96]
 ANCHOR_RATIOS = [0.8, 1.0, 1.2, 1.4, 1.6]
 POS_IOU_THRESHOLD = 0.50

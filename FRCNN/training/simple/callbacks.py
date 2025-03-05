@@ -1,12 +1,11 @@
 from pathlib import Path
 
+import cv2
 import numpy as np
-from keras.callbacks import ModelCheckpoint
 from keras.callbacks import Callback
+
 import config as cfg
 from FRCNN.training.simple.return_bounding_box_points import return_bounding_box_points
-from read_dataset import read_dataset
-import cv2
 from create_anchors import create_anchors
 from return_bbox_from_model import return_bbox_from_model
 
