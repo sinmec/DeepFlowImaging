@@ -2,29 +2,26 @@ import numpy as np
 
 import config as cfg
 from calculate_bbox_intesect_over_union import calculate_bbox_intesect_over_union
-from create_anchors import create_anchors
 from create_samples_for_training import create_samples_for_training
 from evaluate_ious import evaluate_ious
 from parametrize_anchor_box_properties import parametrize_anchor_box_properties
 
 
 def input_generator(imgs, bbox_datasets, model_options):
-    ANCHOR_SIZES = model_options["ANCHOR_SIZES"]
     N_SUB = model_options["N_SUB"]
     N_ANCHORS = model_options["N_ANCHORS"]
     N_RATIOS = model_options["N_RATIOS"]
     img_size = cfg.IMG_SIZE
 
-    anchors, index_anchors_valid = create_anchors(
-        img_size, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES
-    )
+    anchors = model_options['anchors']
+    index_anchors_valid = model_options['index_anchors_valid']
 
     while 1:
         random_indexes = np.random.randint(
             low=0, high=len(imgs) - 1, size=cfg.N_DATA_EPOCHS
         )
         batch_imgs = np.zeros(
-            (len(random_indexes), img_size[0], img_size[1], 1), dtype=np.float64
+            (len(random_indexes), img_size[0], img_size[1], 1), dtype=np.float32
         )
         batch_anchor_labels = np.zeros(
             (
@@ -33,7 +30,7 @@ def input_generator(imgs, bbox_datasets, model_options):
                 img_size[1] // N_SUB,
                 N_ANCHORS * N_RATIOS,
             ),
-            dtype=np.float64,
+            dtype=np.float32,
         )
         batch_anchor_locations = np.zeros(
             (
@@ -42,7 +39,7 @@ def input_generator(imgs, bbox_datasets, model_options):
                 img_size[1] // N_SUB,
                 4 * N_ANCHORS * N_RATIOS,
             ),
-            dtype=np.float64,
+            dtype=np.float32,
         )
 
         for k, random_index in enumerate(random_indexes):
@@ -85,7 +82,7 @@ def input_generator(imgs, bbox_datasets, model_options):
                 (img_size[0] // N_SUB, img_size[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS),
             )
 
-            anchor_labels = anchor_labels.astype(np.float64)
+            anchor_labels = anchor_labels.astype(np.float32)
 
             batch_imgs[k, :, :, 0] = img
 

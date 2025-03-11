@@ -42,7 +42,7 @@ class TrackProgress(Callback):
         N_PROGRESS_IMGS = _images.shape[0]
 
         imgs = np.zeros(
-            (N_PROGRESS_IMGS, self.IMG_SIZE[0], self.IMG_SIZE[1], 1), dtype=np.float64
+            (N_PROGRESS_IMGS, self.IMG_SIZE[0], self.IMG_SIZE[1], 1), dtype=np.float32
         )
         imgs[:, :, :, 0] = _images
 

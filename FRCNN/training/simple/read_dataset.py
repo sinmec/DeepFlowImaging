@@ -72,7 +72,7 @@ def read_dataset(img_size, dataset_folder, mode="raw", subset="Training"):
         )[cols_to_use]
         df_np = df.to_numpy()
 
-        df_np = df_np.astype(np.float64)
+        df_np = df_np.astype(np.float32)
         bbox_dataset = df_np
         bbox_datasets.append(bbox_dataset)
 
