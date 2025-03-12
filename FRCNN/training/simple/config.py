@@ -2,7 +2,7 @@
 INPUT_FOLDER = "/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/example_dataset_FRCNN_synthetic_subimage_2025/Output/"
 
 N_RATIO_LOSSES = 10.0
-N_DATA_EPOCHS = 5
+N_DATA_EPOCHS = 50
 N_EPOCHS = 10000
 N_PATIENCE = 200
 RANDOM_SEED = 13

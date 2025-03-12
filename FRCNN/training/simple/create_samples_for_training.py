@@ -1,17 +1,16 @@
-import cv2
 import numpy as np
 from numba import njit
 
 import config as cfg
-from FRCNN.training.simple.return_bounding_box_points import return_bounding_box_points
+
 
 @njit
 def create_samples_for_training(
-            anchors,
-            labels,
-            bbox_dataset,
-            image,
-            debug=False,
+    anchors,
+    labels,
+    bbox_dataset,
+    image,
+    debug=False,
 ):
     n_pos = int(cfg.POS_RATIO * cfg.N_SAMPLES)
 
@@ -44,6 +43,7 @@ def create_samples_for_training(
             labels[neg_index[i]] = -1
 
     return labels
+
 
 # OLD IMPLEMENTATION --- Useful for debugging
 

@@ -13,8 +13,8 @@ def input_generator(imgs, bbox_datasets, model_options):
     N_RATIOS = model_options["N_RATIOS"]
     img_size = cfg.IMG_SIZE
 
-    anchors = model_options['anchors']
-    index_anchors_valid = model_options['index_anchors_valid']
+    anchors = model_options["anchors"]
+    index_anchors_valid = model_options["index_anchors_valid"]
 
     while 1:
         random_indexes = np.random.randint(

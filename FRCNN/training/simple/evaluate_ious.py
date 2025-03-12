@@ -4,14 +4,14 @@ from numba import jit
 
 @jit(nopython=True)
 def evaluate_ious(
-        anchors,
-        index_anchors_valid,
-        ious,
-        bbox_dataset,
-        image,
-        POS_IOU_THRESHOLD,
-        NEG_IOU_THRESHOLD,
-        debug=False,
+    anchors,
+    index_anchors_valid,
+    ious,
+    bbox_dataset,
+    image,
+    POS_IOU_THRESHOLD,
+    NEG_IOU_THRESHOLD,
+    debug=False,
 ):
     num_anchors = len(anchors)
     labels = np.full(num_anchors, -1, dtype=np.int32)
@@ -40,6 +40,7 @@ def evaluate_ious(
             labels[i] = 1
 
     return labels, anchor_argmax_ious
+
 
 # OLD IMPLEMENTATION --- Useful for debugging
 

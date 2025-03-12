@@ -62,6 +62,8 @@ class TrackProgress(Callback):
             bbox_dataset = _bboxes[k]
             for _bbox in enumerate(bbox_dataset):
                 bbox = _bbox[1]
+                if np.isnan(bbox[0]):
+                    continue
                 p_1, p_2 = return_bounding_box_points(bbox)
                 cv2.rectangle(img_rgb, p_1, p_2, (0, 255, 0), 2)
                 cv2.rectangle(img_raw_rgb, p_1, p_2, (0, 255, 0), 2)

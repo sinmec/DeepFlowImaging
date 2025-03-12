@@ -11,7 +11,6 @@ from keras.utils import plot_model
 import config as cfg
 from FRCNN.training.simple.create_anchors import create_anchors
 from callbacks import TrackProgress
-from input_generator import input_generator
 from losses import loss_cls, loss_reg
 from read_dataset import read_dataset
 from save_model_configuration import save_model_configuration
@@ -25,8 +24,8 @@ N_RATIOS = len(cfg.ANCHOR_RATIOS)
 
 
 anchors, index_anchors_valid = create_anchors(
-        IMG_SIZE, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES
-    )
+    IMG_SIZE, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES
+)
 
 MODEL_OPTIONS = {
     "N_SUB": N_SUB,
@@ -34,7 +33,7 @@ MODEL_OPTIONS = {
     "N_ANCHORS": N_ANCHORS,
     "N_RATIOS": N_RATIOS,
     "anchors": anchors,
-    "index_anchors_valid": index_anchors_valid
+    "index_anchors_valid": index_anchors_valid,
 }
 
 
@@ -52,7 +51,6 @@ images_val, bbox_datasets_val, _ = read_dataset(
 images_verification, bbox_datasets_verification, images_raw_verification = read_dataset(
     IMG_SIZE, dataset_folder, mode=cfg.MODE, subset="Verification"
 )
-
 
 input_image = Input(shape=(IMG_SIZE[0], IMG_SIZE[1], 1))
 conv_3_3_1 = Conv2D(
@@ -147,70 +145,48 @@ calllback_progress_inputs = {
 from FRCNN.training.simple.dataset_generator import dataset_generator
 import tensorflow as tf
 
-
-gen = dataset_generator(images_train, bbox_datasets_train, MODEL_OPTIONS)
-batch = next(gen)
-
-print("Tipo batch_imgs:", type(batch[0]), "Formato:", batch[0].shape)
-print("Tipo batch_anchor_locations:", type(batch[1][0]), "Formato:", batch[1][0].shape)
-print("Tipo batch_anchor_labels:", type(batch[1][1]), "Formato:", batch[1][1].shape)
-
-# dataset = tf.data.Dataset.from_generator(
-#     dataset_generator,
-#     args=(images_train, bbox_datasets_train, MODEL_OPTIONS),
-#     output_signature=(
-#         tf.TensorSpec(shape=(cfg.N_DATA_EPOCHS, cfg.IMG_SIZE[0], cfg.IMG_SIZE[1], 1), dtype=tf.float32),
-#         (
-#             tf.TensorSpec(shape=(cfg.N_DATA_EPOCHS,
-#                                  cfg.IMG_SIZE[0] // MODEL_OPTIONS["N_SUB"],
-#                                  cfg.IMG_SIZE[1] // MODEL_OPTIONS["N_SUB"],
-#                                  4 * MODEL_OPTIONS["N_ANCHORS"] * MODEL_OPTIONS["N_RATIOS"]), dtype=tf.float32),
-#             tf.TensorSpec(shape=(cfg.N_DATA_EPOCHS,
-#                                  cfg.IMG_SIZE[0] // MODEL_OPTIONS["N_SUB"],
-#                                  cfg.IMG_SIZE[1] // MODEL_OPTIONS["N_SUB"],
-#                                  MODEL_OPTIONS["N_ANCHORS"] * MODEL_OPTIONS["N_RATIOS"]), dtype=tf.float32),
-#         )
-#     )
-# )
-
-# images_train = np.array(images_train, dtype=np.float32)
-bbox_datasets_train = np.array(bbox_datasets_train, dtype=object)
-model_options_tuple = (
-    MODEL_OPTIONS["ANCHOR_SIZES"],
-    MODEL_OPTIONS["N_SUB"],
-    MODEL_OPTIONS["N_ANCHORS"],
-    MODEL_OPTIONS["N_RATIOS"]
-)
-
-
 dataset = tf.data.Dataset.from_generator(
     dataset_generator,
-    args=(images_train, bbox_datasets_train, model_options_tuple),
+    args=(
+        images_train,
+        bbox_datasets_train,
+    ),
     output_signature=(
-        tf.TensorSpec(shape=(None, 256, 256, 1), dtype=tf.float32),  # Batch dinâmico
+        tf.TensorSpec(shape=(None, 256, 256, 1), dtype=tf.float32),
         (
             tf.TensorSpec(shape=(None, 16, 16, 100), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, 16, 16, 25), dtype=tf.float32)
-        )
-    )
+            tf.TensorSpec(shape=(None, 16, 16, 25), dtype=tf.float32),
+        ),
+    ),
 )
 
-# BATCH_SIZE = cfg.BATCH_SIZE  # Defina o tamanho do batch
-#
-# dataset = (
-#     dataset
-#     .shuffle(buffer_size=1000)  # Mistura os dados (evita padrões fixos)
-    # .batch(BATCH_SIZE)          # Agrupa os dados em batches
-    # .prefetch(tf.data.experimental.AUTOTUNE)  # Paraleliza o carregamento dos dados
-# )
-#
-#
-#
-# model.fit(
-#     dataset,
-#     # validation_data=dataset,
-#     # validation_steps=100,
-#     steps_per_epoch=100,
-#     epochs=cfg.N_EPOCHS,
-#     callbacks=[checkpoint, early_stopping, TrackProgress(calllback_progress_inputs)],
-# )
+dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+validation_dataset = tf.data.Dataset.from_generator(
+    dataset_generator,
+    args=(
+        images_val,
+        bbox_datasets_val,
+    ),
+    output_signature=(
+        tf.TensorSpec(shape=(None, 256, 256, 1), dtype=tf.float32),
+        (
+            tf.TensorSpec(shape=(None, 16, 16, 100), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, 16, 16, 25), dtype=tf.float32),
+        ),
+    ),
+)
+
+validation_dataset = validation_dataset.prefetch(
+    tf.data.experimental.AUTOTUNE
+)
+
+model.fit(
+    dataset,
+    validation_data=validation_dataset,
+    validation_steps=100,
+    steps_per_epoch=100,
+    epochs=cfg.N_EPOCHS,
+    callbacks=[checkpoint, early_stopping, TrackProgress(calllback_progress_inputs)],
+)
+
