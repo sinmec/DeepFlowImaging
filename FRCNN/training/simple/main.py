@@ -7,15 +7,16 @@ from keras.layers import Input, Conv2D, MaxPooling2D
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.utils import plot_model
+import tensorflow as tf
+
 
 import config as cfg
 from FRCNN.training.simple.create_anchors import create_anchors
+from FRCNN.training.simple.dataset_generator import dataset_generator
 from callbacks import TrackProgress
 from losses import loss_cls, loss_reg
 from read_dataset import read_dataset
 from save_model_configuration import save_model_configuration
-from FRCNN.training.simple.dataset_generator import dataset_generator
-import tensorflow as tf
 
 IMG_SIZE = cfg.IMG_SIZE
 
