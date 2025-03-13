@@ -14,10 +14,12 @@ from callbacks import TrackProgress
 from losses import loss_cls, loss_reg
 from read_dataset import read_dataset
 from save_model_configuration import save_model_configuration
+from FRCNN.training.simple.dataset_generator import dataset_generator
+import tensorflow as tf
 
 IMG_SIZE = cfg.IMG_SIZE
 
-N_SUB = 16
+N_SUB = cfg.N_SUB
 ANCHOR_SIZES = np.array(cfg.ANCHOR_REAL_SIZE) // N_SUB
 N_ANCHORS = len(ANCHOR_SIZES)
 N_RATIOS = len(cfg.ANCHOR_RATIOS)
@@ -26,16 +28,6 @@ N_RATIOS = len(cfg.ANCHOR_RATIOS)
 anchors, index_anchors_valid = create_anchors(
     IMG_SIZE, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES
 )
-
-MODEL_OPTIONS = {
-    "N_SUB": N_SUB,
-    "ANCHOR_SIZES": ANCHOR_SIZES,
-    "N_ANCHORS": N_ANCHORS,
-    "N_RATIOS": N_RATIOS,
-    "anchors": anchors,
-    "index_anchors_valid": index_anchors_valid,
-}
-
 
 best_model_name = f"best_fRCNN_{cfg.MODE}_{N_SUB:02d}.keras"
 filepath = Path(f"{Path(best_model_name).stem}_CONFIG.h5")
@@ -142,8 +134,7 @@ calllback_progress_inputs = {
     "bbox_datasets_verification": bbox_datasets_verification,
 }
 
-from FRCNN.training.simple.dataset_generator import dataset_generator
-import tensorflow as tf
+
 
 dataset = tf.data.Dataset.from_generator(
     dataset_generator,
@@ -152,10 +143,12 @@ dataset = tf.data.Dataset.from_generator(
         bbox_datasets_train,
     ),
     output_signature=(
-        tf.TensorSpec(shape=(None, 256, 256, 1), dtype=tf.float32),
+        tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
         (
-            tf.TensorSpec(shape=(None, 16, 16, 100), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, 16, 16, 25), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, IMG_SIZE[0] // N_SUB, IMG_SIZE[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS),
+                          dtype=tf.float32),
+            tf.TensorSpec(shape=(None, IMG_SIZE[0] // N_SUB, IMG_SIZE[1] // N_SUB, N_ANCHORS * N_RATIOS),
+                          dtype=tf.float32),
         ),
     ),
 )
@@ -169,10 +162,10 @@ validation_dataset = tf.data.Dataset.from_generator(
         bbox_datasets_val,
     ),
     output_signature=(
-        tf.TensorSpec(shape=(None, 256, 256, 1), dtype=tf.float32),
+        tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
         (
-            tf.TensorSpec(shape=(None, 16, 16, 100), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, 16, 16, 25), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, IMG_SIZE[0] // N_SUB, IMG_SIZE[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, IMG_SIZE[0] // N_SUB, IMG_SIZE[1] // N_SUB, N_ANCHORS * N_RATIOS), dtype=tf.float32),
         ),
     ),
 )
@@ -183,10 +176,10 @@ validation_dataset = validation_dataset.prefetch(
 
 model.fit(
     dataset,
-    validation_data=validation_dataset,
-    validation_steps=100,
-    steps_per_epoch=100,
     epochs=cfg.N_EPOCHS,
+    validation_data=validation_dataset,
+    validation_steps=len(images_val) // cfg.N_DATA_EPOCHS,
+    steps_per_epoch=len(images_train) // cfg.N_DATA_EPOCHS,
     callbacks=[checkpoint, early_stopping, TrackProgress(calllback_progress_inputs)],
 )
 

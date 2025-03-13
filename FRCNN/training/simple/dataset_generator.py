@@ -19,8 +19,6 @@ def process_batch(
     img_size,
     N_ANCHORS,
     N_RATIOS,
-    POS_IOU_THRESHOLD,
-    NEG_IOU_THRESHOLD,
 ):
     batch_size = len(imgs)
 
@@ -86,10 +84,9 @@ def process_batch(
     return batch_imgs, batch_anchor_locations, batch_anchor_labels
 
 
-# def dataset_generator(imgs, bbox_datasets):
 def dataset_generator(imgs, bbox_datasets_np):
 
-    N_SUB = 16
+    N_SUB = cfg.N_SUB
     ANCHOR_SIZES = np.array(cfg.ANCHOR_REAL_SIZE) // N_SUB
     N_ANCHORS = len(ANCHOR_SIZES)
     N_RATIOS = len(cfg.ANCHOR_RATIOS)
@@ -109,24 +106,29 @@ def dataset_generator(imgs, bbox_datasets_np):
                 break
         bbox_datasets.append(_bbox_dataset[:index_to_remove])
 
-    while True:
-        random_indexes = np.random.randint(0, len(imgs), size=cfg.N_DATA_EPOCHS)
-        batch_imgs = [imgs[i] for i in random_indexes]
-        batch_bbox_datasets = [bbox_datasets[i] for i in random_indexes]
+    indices = np.arange(len(imgs))
 
-        batch_imgs, batch_anchor_locations, batch_anchor_labels = process_batch(
-            batch_imgs,
-            batch_bbox_datasets,
-            anchors,
-            index_anchors_valid,
-            N_SUB,
-            cfg.IMG_SIZE,
-            N_ANCHORS,
-            N_RATIOS,
-            cfg.POS_IOU_THRESHOLD,
-            cfg.NEG_IOU_THRESHOLD,
-        )
-        yield np.array(batch_imgs, dtype=np.float32), (
-            np.array(batch_anchor_locations, dtype=np.float32),
-            np.array(batch_anchor_labels, dtype=np.float32),
-        )
+
+    while True:
+        np.random.shuffle(indices)
+
+        for i in range(0, len(indices), cfg.N_DATA_EPOCHS):
+            batch_indexes = indices[i: i + cfg.N_DATA_EPOCHS]
+
+            batch_imgs = [imgs[i] for i in batch_indexes]
+            batch_bbox_datasets = [bbox_datasets[i] for i in batch_indexes]
+
+            batch_imgs, batch_anchor_locations, batch_anchor_labels = process_batch(
+                batch_imgs,
+                batch_bbox_datasets,
+                anchors,
+                index_anchors_valid,
+                N_SUB,
+                cfg.IMG_SIZE,
+                N_ANCHORS,
+                N_RATIOS,
+            )
+            yield np.array(batch_imgs, dtype=np.float32), (
+                np.array(batch_anchor_locations, dtype=np.float32),
+                np.array(batch_anchor_labels, dtype=np.float32),
+            )

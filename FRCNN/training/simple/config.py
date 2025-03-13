@@ -6,6 +6,7 @@ N_DATA_EPOCHS = 50
 N_EPOCHS = 10000
 N_PATIENCE = 200
 RANDOM_SEED = 13
+N_SUB = 8
 
 IMG_SIZE = (256, 256)  # Only square images are supported
 MODE = "raw"
