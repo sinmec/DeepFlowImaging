@@ -29,7 +29,9 @@ anchors, index_anchors_valid = create_anchors(
     IMG_SIZE, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES
 )
 
-best_model_name = f"best_fRCNN_{cfg.MODE}_{N_SUB:02d}.keras"
+model_name = f"fRCNN_{cfg.MODE}_{N_SUB:02d}"
+
+best_model_name = f"best_{model_name}.keras"
 filepath = Path(f"{Path(best_model_name).stem}_CONFIG.h5")
 save_model_configuration(filepath, N_SUB, ANCHOR_SIZES)
 
@@ -113,7 +115,7 @@ opt = Adam(learning_rate=cfg.ADAM_LEARNING_RATE)
 model = Model(inputs=[input_image], outputs=[output_regressor, output_scores])
 model.compile(optimizer=opt, loss={"l_reg": loss_cls, "bb_reg": loss_reg})
 
-plot_model(model, show_shapes=True, to_file="model_true.png")
+plot_model(model, show_shapes=True, to_file=f"model_{model_name}.png")
 model.summary()
 
 checkpoint = ModelCheckpoint(
@@ -135,7 +137,6 @@ calllback_progress_inputs = {
 }
 
 
-
 dataset = tf.data.Dataset.from_generator(
     dataset_generator,
     args=(
@@ -145,10 +146,24 @@ dataset = tf.data.Dataset.from_generator(
     output_signature=(
         tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
         (
-            tf.TensorSpec(shape=(None, IMG_SIZE[0] // N_SUB, IMG_SIZE[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS),
-                          dtype=tf.float32),
-            tf.TensorSpec(shape=(None, IMG_SIZE[0] // N_SUB, IMG_SIZE[1] // N_SUB, N_ANCHORS * N_RATIOS),
-                          dtype=tf.float32),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    4 * N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
         ),
     ),
 )
@@ -164,22 +179,41 @@ validation_dataset = tf.data.Dataset.from_generator(
     output_signature=(
         tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
         (
-            tf.TensorSpec(shape=(None, IMG_SIZE[0] // N_SUB, IMG_SIZE[1] // N_SUB, 4 * N_ANCHORS * N_RATIOS), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, IMG_SIZE[0] // N_SUB, IMG_SIZE[1] // N_SUB, N_ANCHORS * N_RATIOS), dtype=tf.float32),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    4 * N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
         ),
     ),
 )
 
-validation_dataset = validation_dataset.prefetch(
-    tf.data.experimental.AUTOTUNE
-)
+validation_dataset = validation_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
 model.fit(
     dataset,
     epochs=cfg.N_EPOCHS,
     validation_data=validation_dataset,
-    validation_steps=len(images_val) // cfg.N_DATA_EPOCHS,
-    steps_per_epoch=len(images_train) // cfg.N_DATA_EPOCHS,
-    callbacks=[checkpoint, early_stopping, TrackProgress(calllback_progress_inputs)],
+    validation_steps=len(images_val) // cfg.BATCH_SIZE_IMAGES,
+    steps_per_epoch=len(images_train) // cfg.BATCH_SIZE_IMAGES,
+    callbacks=[
+        checkpoint,
+        early_stopping,
+        TrackProgress(
+            calllback_progress_inputs, out_folder=Path(f"progress/{model_name}/best")
+        ),
+    ],
 )
-

@@ -108,12 +108,11 @@ def dataset_generator(imgs, bbox_datasets_np):
 
     indices = np.arange(len(imgs))
 
-
     while True:
         np.random.shuffle(indices)
 
-        for i in range(0, len(indices), cfg.N_DATA_EPOCHS):
-            batch_indexes = indices[i: i + cfg.N_DATA_EPOCHS]
+        for i in range(0, len(indices), cfg.BATCH_SIZE_IMAGES):
+            batch_indexes = indices[i : i + cfg.BATCH_SIZE_IMAGES]
 
             batch_imgs = [imgs[i] for i in batch_indexes]
             batch_bbox_datasets = [bbox_datasets[i] for i in batch_indexes]

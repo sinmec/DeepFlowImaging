@@ -18,7 +18,7 @@ def input_generator(imgs, bbox_datasets, model_options):
 
     while 1:
         random_indexes = np.random.randint(
-            low=0, high=len(imgs) - 1, size=cfg.N_DATA_EPOCHS
+            low=0, high=len(imgs) - 1, size=cfg.BATCH_SIZE_IMAGES
         )
         batch_imgs = np.zeros(
             (len(random_indexes), img_size[0], img_size[1], 1), dtype=np.float32
