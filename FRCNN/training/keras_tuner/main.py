@@ -9,10 +9,12 @@ from keras.layers import Input, Conv2D, MaxPooling2D
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.utils import plot_model
+import tensorflow as tf
+
 
 import config as cfg
 from FRCNN.training.keras_tuner.callbacks import TrackProgress
-from input_generator import input_generator
+from FRCNN.training.simple.dataset_generator import dataset_generator
 from losses import loss_cls, loss_reg
 from read_dataset import read_dataset
 from save_model_configuration import save_model_configuration
@@ -22,33 +24,28 @@ KT_MODE = "RandomSearch"
 
 IMG_SIZE = cfg.IMG_SIZE
 
-N_SUB = 8
+N_SUB = cfg.N_SUB
 
-if N_SUB == 32:
-    ANCHOR_REAL_SIZE = [32, 64, 96]
-    POS_IOU_THRESHOLD = 0.35
-    NEG_IOU_THRESHOLD = 0.1
-elif N_SUB == 16:
-    ANCHOR_REAL_SIZE = [16, 32, 48, 64, 96]
-    POS_IOU_THRESHOLD = 0.50
-    NEG_IOU_THRESHOLD = 0.1
-elif N_SUB == 8:
-    ANCHOR_REAL_SIZE = [8, 16, 32, 48, 64, 96]
-    POS_IOU_THRESHOLD = 0.60
-    NEG_IOU_THRESHOLD = 0.1
+# if N_SUB == 32:
+#     ANCHOR_REAL_SIZE = [32, 64, 96]
+#     POS_IOU_THRESHOLD = 0.35
+#     NEG_IOU_THRESHOLD = 0.1
+# elif N_SUB == 16:
+#     ANCHOR_REAL_SIZE = [16, 32, 48, 64, 96]
+#     POS_IOU_THRESHOLD = 0.50
+#     NEG_IOU_THRESHOLD = 0.1
+# elif N_SUB == 8:
+#     ANCHOR_REAL_SIZE = [8, 16, 32, 48, 64, 96]
+#     POS_IOU_THRESHOLD = 0.60
+#     NEG_IOU_THRESHOLD = 0.1
 
-ANCHOR_SIZES = np.array(ANCHOR_REAL_SIZE) // N_SUB
+ANCHOR_SIZES = np.array(cfg.ANCHOR_REAL_SIZE) // N_SUB
 N_ANCHORS = len(ANCHOR_SIZES)
 N_RATIOS = len(cfg.ANCHOR_RATIOS)
 
-MODEL_OPTIONS = {
-    "N_SUB": N_SUB,
-    "ANCHOR_SIZES": ANCHOR_SIZES,
-    "N_ANCHORS": N_ANCHORS,
-    "N_RATIOS": N_RATIOS,
-}
+model_name = f"fRCNN_{cfg.MODE}_{N_SUB:02d}"
 
-best_model_name = f"best_fRCNN_{cfg.MODE}_{N_SUB:02d}.keras"
+best_model_name = f"best_{model_name}.keras"
 filepath = Path(f"{Path(best_model_name).stem}_CONFIG.h5")
 save_model_configuration(filepath, N_SUB, ANCHOR_SIZES)
 
@@ -62,6 +59,149 @@ images_val, bbox_datasets_val, _ = read_dataset(
 images_verification, bbox_datasets_verification, images_raw_verification = read_dataset(
     IMG_SIZE, dataset_folder, mode=cfg.MODE, subset="Verification"
 )
+
+N_train = images_train.shape[0]
+N_val = images_val.shape[0]
+
+images_train_KT = images_train[: N_train // 4]
+bbox_datasets_train_KT = bbox_datasets_train[: N_train // 4]
+
+images_val_KT = images_val[: N_train // 4]
+bbox_datasets_val_KT = bbox_datasets_val[: N_train // 4]
+
+
+dataset_KT = tf.data.Dataset.from_generator(
+    dataset_generator,
+    args=(
+        images_train_KT,
+        bbox_datasets_train_KT,
+    ),
+    output_signature=(
+        tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
+        (
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    4 * N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+        ),
+    ),
+)
+
+dataset_KT = dataset_KT.prefetch(tf.data.experimental.AUTOTUNE)
+
+validation_dataset_KT = tf.data.Dataset.from_generator(
+    dataset_generator,
+    args=(
+        images_val_KT,
+        bbox_datasets_val_KT,
+    ),
+    output_signature=(
+        tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
+        (
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    4 * N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+        ),
+    ),
+)
+
+validation_dataset_KT = validation_dataset_KT.prefetch(tf.data.experimental.AUTOTUNE)
+
+
+dataset = tf.data.Dataset.from_generator(
+    dataset_generator,
+    args=(
+        images_train,
+        bbox_datasets_train,
+    ),
+    output_signature=(
+        tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
+        (
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    4 * N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+        ),
+    ),
+)
+
+dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+validation_dataset = tf.data.Dataset.from_generator(
+    dataset_generator,
+    args=(
+        images_val,
+        bbox_datasets_val,
+    ),
+    output_signature=(
+        tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
+        (
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    4 * N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+        ),
+    ),
+)
+
+validation_dataset = validation_dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
 
 def model_builder(hp):
@@ -141,13 +281,14 @@ elif KT_MODE == "RandomSearch":
 early_stopping = EarlyStopping(monitor="val_loss", mode="min", verbose=1, patience=50)
 
 tuner.search(
-    input_generator(images_train, bbox_datasets_train, MODEL_OPTIONS),
-    validation_data=input_generator(images_val, bbox_datasets_val, MODEL_OPTIONS),
-    validation_steps=20,
-    steps_per_epoch=100,
-    epochs=200,
+    dataset_KT,
+    epochs=cfg.N_EPOCHS,
+    validation_data=validation_dataset_KT,
+    validation_steps=len(images_val) // cfg.BATCH_SIZE_IMAGES,
+    steps_per_epoch=len(images_train) // cfg.BATCH_SIZE_IMAGES,
     callbacks=[early_stopping],
 )
+
 
 best_hps = tuner.get_best_hyperparameters(num_trials=5)
 for trial, best_hp in enumerate(best_hps):
@@ -181,11 +322,11 @@ for trial, best_hp in enumerate(best_hps):
     }
 
     model.fit(
-        input_generator(images_train, bbox_datasets_train, MODEL_OPTIONS),
-        validation_data=input_generator(images_val, bbox_datasets_val, MODEL_OPTIONS),
-        validation_steps=100,
-        steps_per_epoch=100,
+        dataset,
         epochs=cfg.N_EPOCHS,
+        validation_data=validation_dataset,
+        validation_steps=len(images_val) // cfg.BATCH_SIZE_IMAGES,
+        steps_per_epoch=len(images_train) // cfg.BATCH_SIZE_IMAGES,
         callbacks=[
             checkpoint,
             early_stopping,

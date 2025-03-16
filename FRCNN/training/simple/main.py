@@ -11,7 +11,6 @@ import tensorflow as tf
 
 
 import config as cfg
-from FRCNN.training.simple.create_anchors import create_anchors
 from FRCNN.training.simple.dataset_generator import dataset_generator
 from callbacks import TrackProgress
 from losses import loss_cls, loss_reg
@@ -25,10 +24,6 @@ ANCHOR_SIZES = np.array(cfg.ANCHOR_REAL_SIZE) // N_SUB
 N_ANCHORS = len(ANCHOR_SIZES)
 N_RATIOS = len(cfg.ANCHOR_RATIOS)
 
-
-anchors, index_anchors_valid = create_anchors(
-    IMG_SIZE, N_SUB, cfg.ANCHOR_RATIOS, ANCHOR_SIZES
-)
 
 model_name = f"fRCNN_{cfg.MODE}_{N_SUB:02d}"
 
