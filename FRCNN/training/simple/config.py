@@ -2,10 +2,11 @@
 INPUT_FOLDER = "/home/rafaelfc/Data/DeepFlowImaging/FRCNN/examples/example_dataset_FRCNN_synthetic_subimage_2025/Output/"
 
 N_RATIO_LOSSES = 10.0
-N_DATA_EPOCHS = 5
+BATCH_SIZE_IMAGES = 50
 N_EPOCHS = 10000
 N_PATIENCE = 200
 RANDOM_SEED = 13
+N_SUB = 8
 
 IMG_SIZE = (256, 256)  # Only square images are supported
 MODE = "raw"
@@ -19,6 +20,7 @@ NEG_IOU_THRESHOLD = 0.1
 
 N_FILTERS = 21
 KERNEL_SIZE = (5, 5)
+BATCH_SIZE = 100
 
 SHOW_N_POS = False
 POS_RATIO = 0.5

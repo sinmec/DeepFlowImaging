@@ -20,7 +20,7 @@ def parametrize_anchor_box_properties(
         image_rgb = image_rgb.astype(np.uint8)
         image_rgb = cv2.cvtColor(image_rgb, cv2.COLOR_GRAY2BGR)
 
-    anchor_locations = np.zeros((len(anchors) * 4), dtype=np.float64)
+    anchor_locations = np.zeros((len(anchors) * 4), dtype=np.float32)
 
     index = 0
     for i in range(len(labels)):

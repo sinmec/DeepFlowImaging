@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 import pandas as pd
 
+from FRCNN.training.simple.return_bounding_box_points import return_bounding_box_points
+
 
 def read_dataset(img_size, dataset_folder, mode="raw", subset="Training"):
 
@@ -17,15 +19,13 @@ def read_dataset(img_size, dataset_folder, mode="raw", subset="Training"):
     _imgs = os.listdir(masks_folder)
 
     N_imgs = 0
-    _imgs_png = []
+    image_files = []
     for img in _imgs:
         if img.endswith(".jpg"):
             N_imgs += 1
-            _imgs_png.append(img.split(".jpg")[0])
-    _imgs_png.sort()
+            image_files.append(img.split(".jpg")[0])
+    image_files.sort()
 
-    # Reading the csv and image files
-    bbox_datasets = []
     mask_imgs = np.zeros(
         (
             N_imgs,
@@ -43,7 +43,8 @@ def read_dataset(img_size, dataset_folder, mode="raw", subset="Training"):
         dtype=float,
     )
 
-    for i, _img in enumerate(_imgs_png):
+    contour_files = []
+    for i, _img in enumerate(image_files):
         _file = _img
 
         # Reading the images (raw and mask)
@@ -55,30 +56,42 @@ def read_dataset(img_size, dataset_folder, mode="raw", subset="Training"):
         mask_imgs[i, :, :] = mask_img / 255.0
         raw_imgs[i, :, :] = raw_img / 255.0
 
-        # Reading the corresponding .txt file
-        label_file = f"{_file}_contours.txt"
+        contour_files.append(f"{_file}_contours.txt")
+
+    MAX_BBOXES_PER_IMAGE = 200
+    bbox_datasets = np.zeros(
+        (len(contour_files), MAX_BBOXES_PER_IMAGE, 4), dtype=np.float32
+    )
+    bbox_datasets[...] = np.nan
+
+    for index_contour, contour_file in enumerate(contour_files):
         cols_to_use = [
             "ellipse_center_x",
             "ellipse_center_y",
             "bbox_height",
             "bbox_width",
         ]
+
         df = pd.read_csv(
-            str(Path(txt_folder, label_file)),
+            str(Path(txt_folder, contour_file)),
             sep=", ",
             usecols=cols_to_use,
             engine="python",
             index_col=False,
         )[cols_to_use]
         df_np = df.to_numpy()
+        for index_bbox, _df_np in enumerate(df_np):
+            assert (
+                index_bbox <= MAX_BBOXES_PER_IMAGE
+            ), "Exceeded maximum allowed bounding boxes per image!"
 
-        df_np = df_np.astype(np.float64)
-        bbox_dataset = df_np
-        bbox_datasets.append(bbox_dataset)
+            bbox_datasets[index_contour, index_bbox, 0] = _df_np[0]
+            bbox_datasets[index_contour, index_bbox, 1] = _df_np[1]
+            bbox_datasets[index_contour, index_bbox, 2] = _df_np[2]
+            bbox_datasets[index_contour, index_bbox, 3] = _df_np[3]
 
     debug = False
     if debug:
-        i = 0
         for k in range(raw_imgs.shape[0]):
             __img = raw_imgs[k] * 255.0
             __img = __img.astype(np.uint8)
@@ -86,19 +99,13 @@ def read_dataset(img_size, dataset_folder, mode="raw", subset="Training"):
 
             __bbox_dataset = bbox_datasets[k]
             for __bbox in __bbox_dataset:
-                x_b_1 = int(__bbox[0] - (__bbox[2] / 2))
-                y_b_1 = int(__bbox[1] - (__bbox[3] / 2))
-                x_b_2 = int(__bbox[0] + (__bbox[2] / 2))
-                y_b_2 = int(__bbox[1] + (__bbox[3] / 2))
-                c_x = (x_b_1 + x_b_2) // 2
-                c_y = (y_b_1 + y_b_2) // 2
-                p_1 = (x_b_1, y_b_1)
-                p_2 = (x_b_2, y_b_2)
+                if np.isnan(__bbox[0]):
+                    continue
+                p_1, p_2 = return_bounding_box_points(__bbox)
                 cv2.rectangle(__img, p_1, p_2, (0, 255, 255), 4)
 
             cv2.namedWindow("test", cv2.WINDOW_NORMAL)
             cv2.imshow("test", __img)
             cv2.waitKey(0)
-        i += 1
 
     return mask_imgs, bbox_datasets, raw_imgs

@@ -7,30 +7,27 @@ from keras.layers import Input, Conv2D, MaxPooling2D
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.utils import plot_model
+import tensorflow as tf
+
 
 import config as cfg
+from FRCNN.training.simple.dataset_generator import dataset_generator
 from callbacks import TrackProgress
-from input_generator import input_generator
 from losses import loss_cls, loss_reg
 from read_dataset import read_dataset
 from save_model_configuration import save_model_configuration
 
 IMG_SIZE = cfg.IMG_SIZE
 
-N_SUB = 16
+N_SUB = cfg.N_SUB
 ANCHOR_SIZES = np.array(cfg.ANCHOR_REAL_SIZE) // N_SUB
 N_ANCHORS = len(ANCHOR_SIZES)
 N_RATIOS = len(cfg.ANCHOR_RATIOS)
 
-MODEL_OPTIONS = {
-    "N_SUB": N_SUB,
-    "ANCHOR_SIZES": ANCHOR_SIZES,
-    "N_ANCHORS": N_ANCHORS,
-    "N_RATIOS": N_RATIOS,
-}
 
+model_name = f"fRCNN_{cfg.MODE}_{N_SUB:02d}"
 
-best_model_name = f"best_fRCNN_{cfg.MODE}_{N_SUB:02d}.keras"
+best_model_name = f"best_{model_name}.keras"
 filepath = Path(f"{Path(best_model_name).stem}_CONFIG.h5")
 save_model_configuration(filepath, N_SUB, ANCHOR_SIZES)
 
@@ -44,7 +41,6 @@ images_val, bbox_datasets_val, _ = read_dataset(
 images_verification, bbox_datasets_verification, images_raw_verification = read_dataset(
     IMG_SIZE, dataset_folder, mode=cfg.MODE, subset="Verification"
 )
-
 
 input_image = Input(shape=(IMG_SIZE[0], IMG_SIZE[1], 1))
 conv_3_3_1 = Conv2D(
@@ -115,7 +111,7 @@ opt = Adam(learning_rate=cfg.ADAM_LEARNING_RATE)
 model = Model(inputs=[input_image], outputs=[output_regressor, output_scores])
 model.compile(optimizer=opt, loss={"l_reg": loss_cls, "bb_reg": loss_reg})
 
-plot_model(model, show_shapes=True, to_file="model_true.png")
+plot_model(model, show_shapes=True, to_file=f"model_{model_name}.png")
 model.summary()
 
 checkpoint = ModelCheckpoint(
@@ -126,6 +122,7 @@ early_stopping = EarlyStopping(
     monitor="val_loss", mode="min", verbose=1, patience=cfg.N_PATIENCE
 )
 
+
 calllback_progress_inputs = {
     "IMG_SIZE": IMG_SIZE,
     "N_SUB": N_SUB,
@@ -135,11 +132,84 @@ calllback_progress_inputs = {
     "bbox_datasets_verification": bbox_datasets_verification,
 }
 
+
+dataset = tf.data.Dataset.from_generator(
+    dataset_generator,
+    args=(
+        images_train,
+        bbox_datasets_train,
+    ),
+    output_signature=(
+        tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
+        (
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    4 * N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+        ),
+    ),
+)
+
+dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+validation_dataset = tf.data.Dataset.from_generator(
+    dataset_generator,
+    args=(
+        images_val,
+        bbox_datasets_val,
+    ),
+    output_signature=(
+        tf.TensorSpec(shape=(None, IMG_SIZE[0], IMG_SIZE[1], 1), dtype=tf.float32),
+        (
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    4 * N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+            tf.TensorSpec(
+                shape=(
+                    None,
+                    IMG_SIZE[0] // N_SUB,
+                    IMG_SIZE[1] // N_SUB,
+                    N_ANCHORS * N_RATIOS,
+                ),
+                dtype=tf.float32,
+            ),
+        ),
+    ),
+)
+
+validation_dataset = validation_dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
 model.fit(
-    input_generator(images_train, bbox_datasets_train, MODEL_OPTIONS),
-    validation_data=input_generator(images_val, bbox_datasets_val, MODEL_OPTIONS),
-    validation_steps=100,
-    steps_per_epoch=100,
+    dataset,
     epochs=cfg.N_EPOCHS,
-    callbacks=[checkpoint, early_stopping, TrackProgress(calllback_progress_inputs)],
+    validation_data=validation_dataset,
+    validation_steps=len(images_val) // cfg.BATCH_SIZE_IMAGES,
+    steps_per_epoch=len(images_train) // cfg.BATCH_SIZE_IMAGES,
+    callbacks=[
+        checkpoint,
+        early_stopping,
+        TrackProgress(
+            calllback_progress_inputs, out_folder=Path(f"progress/{model_name}/best")
+        ),
+    ],
 )
